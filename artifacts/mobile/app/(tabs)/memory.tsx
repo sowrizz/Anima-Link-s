@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TextInput, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useSearchMemory, useGetAllMemories } from '@workspace/api-client-react';
+import { useGetAllMemories } from '@workspace/api-client-react';
 import { MemoryCard } from '@/components/MemoryCard';
 import { useRouter } from 'expo-router';
+import Svg, { Circle, Line } from 'react-native-svg';
 
 const CATEGORIES = ['All', 'Exam Stress', 'Meetings', 'Focus Wins', 'Reframes', 'Tiny Wins'];
 
@@ -17,20 +18,54 @@ export default function MemoryScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   
-  const { data: allMemories, isLoading: allLoading } = useGetAllMemories();
-  const searchMutation = useSearchMemory();
+  const { data: allMemories, isLoading } = useGetAllMemories();
 
-  const handleSearch = () => {
-    if (!query.trim()) return;
-    searchMutation.mutate({ data: { query: query.trim(), category: category !== 'All' ? category : undefined } });
-  };
+  const displayData = useMemo(() => {
+    let list = allMemories?.memories || [];
+    
+    // Filter by Category Chip
+    if (category !== 'All') {
+      const catLower = category.toLowerCase();
+      list = list.filter((m) => {
+        const trigger = (m.trigger || '').toLowerCase();
+        const summary = (m.summary || '').toLowerCase();
+        const title = (m.title || '').toLowerCase();
+        
+        if (catLower === 'exam stress') {
+          return trigger.includes('exam') || trigger.includes('test') || summary.includes('exam') || summary.includes('test');
+        }
+        if (catLower === 'meetings') {
+          return trigger.includes('meeting') || summary.includes('meeting');
+        }
+        if (catLower === 'focus wins') {
+          return trigger.includes('focus') || summary.includes('focus') || title.includes('win') || summary.includes('win');
+        }
+        if (catLower === 'reframes') {
+          return (m.reframe && m.reframe.trim().length > 0) || title.includes('reframe');
+        }
+        if (catLower === 'tiny wins') {
+          return title.includes('win') || summary.includes('win');
+        }
+        return false;
+      });
+    }
 
-  const isSearching = searchMutation.isPending;
-  const searchResults = searchMutation.data?.results;
-  
-  // Decide what to show
-  const displayData = query && searchResults ? searchResults : (allMemories?.memories || []);
-  const isLoading = allLoading || isSearching;
+    // Filter by Search Query
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      list = list.filter((m) => {
+        return (
+          (m.title || '').toLowerCase().includes(q) ||
+          (m.summary || '').toLowerCase().includes(q) ||
+          (m.reframe || '').toLowerCase().includes(q) ||
+          (m.trigger || '').toLowerCase().includes(q) ||
+          (m.character || '').toLowerCase().includes(q)
+        );
+      });
+    }
+
+    return list;
+  }, [allMemories, category, query]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -38,7 +73,7 @@ export default function MemoryScreen() {
         <View style={styles.headerTop}>
           <Text style={[styles.title, { color: colors.foreground }]}>Memory Core</Text>
           <Pressable 
-            style={[styles.mapBtn, { backgroundColor: colors.primary + '22' }]}
+            style={[styles.mapBtn, { backgroundColor: colors.primary + '1a' }]}
             onPress={() => router.push('/memory-map')}
           >
             <Feather name="git-merge" size={16} color={colors.primary} />
@@ -54,11 +89,10 @@ export default function MemoryScreen() {
             placeholderTextColor={colors.mutedForeground}
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <Pressable onPress={() => { setQuery(''); searchMutation.reset(); }}>
+            <Pressable onPress={() => setQuery('')}>
               <Feather name="x" size={20} color={colors.mutedForeground} />
             </Pressable>
           )}
@@ -70,40 +104,54 @@ export default function MemoryScreen() {
             showsHorizontalScrollIndicator={false}
             data={CATEGORIES}
             keyExtractor={item => item}
-            renderItem={({ item }) => (
-              <Pressable
-                style={[
-                  styles.chip,
-                  { 
-                    backgroundColor: category === item ? colors.primary : colors.card,
-                    borderColor: category === item ? colors.primary : colors.border
-                  }
-                ]}
-                onPress={() => setCategory(item)}
-              >
-                <Text style={[
-                  styles.chipText,
-                  { color: category === item ? colors.primaryForeground : colors.foreground }
-                ]}>
-                  {item}
-                </Text>
-              </Pressable>
-            )}
+            renderItem={({ item }) => {
+              const isActive = category === item;
+              return (
+                <Pressable
+                  style={[
+                    styles.chip,
+                    { 
+                      backgroundColor: isActive ? colors.primary : colors.card,
+                      borderColor: isActive ? colors.primary : colors.border
+                    }
+                  ]}
+                  onPress={() => setCategory(item)}
+                >
+                  <Text style={[
+                    styles.chipText,
+                    { color: isActive ? colors.primaryForeground : colors.foreground }
+                  ]}>
+                    {item}
+                  </Text>
+                </Pressable>
+              );
+            }}
           />
         </View>
+
         <Pressable
-          style={[styles.graphPreview, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}
+          style={[styles.graphPreview, { backgroundColor: colors.card, borderColor: colors.border }]}
           onPress={() => router.push('/memory-map')}
         >
-          <View style={styles.graphLine}>
-            {['Trigger', 'Pattern', 'Reframe', 'Proof'].map((node, index) => (
-              <View key={node} style={styles.graphNodeWrap}>
-                <View style={[styles.graphDot, { backgroundColor: index === 3 ? colors.sage : colors.primary }]} />
-                <Text style={[styles.graphNodeText, { color: colors.foreground }]}>{node}</Text>
-              </View>
-            ))}
+          <Text style={[styles.graphPreviewTitle, { color: colors.foreground }]}>Interactive Memory Map</Text>
+          <Text style={[styles.graphPreviewSubtitle, { color: colors.mutedForeground }]}>Tap to open Obsidian-style thought connections</Text>
+          
+          <View style={[styles.miniCanvas, { backgroundColor: colors.background }]}>
+            <Svg height="64" width="100%">
+              {/* Connected Dotted Lines */}
+              <Line x1="10%" y1="32" x2="30%" y2="16" stroke={colors.primary} strokeWidth="1.5" strokeDasharray="3,3" />
+              <Line x1="30%" y1="16" x2="50%" y2="48" stroke={colors.primary} strokeWidth="1.5" strokeDasharray="3,3" />
+              <Line x1="50%" y1="48" x2="70%" y2="20" stroke={colors.primary} strokeWidth="1.5" strokeDasharray="3,3" />
+              <Line x1="70%" y1="20" x2="90%" y2="38" stroke={colors.sage} strokeWidth="1.5" strokeDasharray="3,3" />
+
+              {/* Node Circles */}
+              <Circle cx="10%" cy="32" r="6" fill={colors.accent} />
+              <Circle cx="30%" cy="16" r="6" fill={colors.kael} />
+              <Circle cx="50%" cy="48" r="6" fill={colors.nova} />
+              <Circle cx="70%" cy="20" r="6" fill={colors.arlo} />
+              <Circle cx="90%" cy="38" r="6" fill={colors.sage} />
+            </Svg>
           </View>
-          <Text style={[styles.graphHint, { color: colors.mutedForeground }]}>Exam stress {'->'} overgeneralization {'->'} Nova reframe {'->'} progress proof</Text>
         </Pressable>
       </View>
 
@@ -194,33 +242,36 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   graphPreview: {
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
-    padding: 14,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  graphLine: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  graphNodeWrap: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  graphDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  graphNodeText: {
-    fontSize: 11,
+  graphPreviewTitle: {
+    fontSize: 16,
     fontFamily: 'Inter_700Bold',
+    marginBottom: 2,
   },
-  graphHint: {
-    fontSize: 12,
+  graphPreviewSubtitle: {
+    fontSize: 13,
     fontFamily: 'Inter_400Regular',
-    lineHeight: 17,
+    marginBottom: 12,
+  },
+  miniCanvas: {
+    height: 64,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e3ddd4',
+    overflow: 'hidden',
   },
   center: {
     flex: 1,

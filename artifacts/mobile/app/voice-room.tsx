@@ -100,6 +100,11 @@ export default function VoiceRoomScreen() {
           data: { transcript: transRes.transcript },
         });
         setRouteResult(rRes);
+
+        // Auto redirect after a short delay so the user can read the transcript
+        setTimeout(() => {
+          navigateForRoute(rRes.route, rRes.params, transRes.transcript);
+        }, 1000);
       } else {
         throw new Error('No audio URI found');
       }
@@ -124,6 +129,11 @@ export default function VoiceRoomScreen() {
       setTranscript(transRes.transcript);
       const rRes = await routeMutation.mutateAsync({ data: { transcript: transRes.transcript } });
       setRouteResult(rRes);
+
+      // Auto redirect after a short delay
+      setTimeout(() => {
+        navigateForRoute(rRes.route, rRes.params, transRes.transcript);
+      }, 1000);
     } catch {
       setError('Could not route this transcript. Check Gemini configuration and try again.');
     }
@@ -175,12 +185,11 @@ export default function VoiceRoomScreen() {
     recognition.start();
   };
 
-  const handleExecuteAction = () => {
-    if (!routeResult) return;
-    const params = routeResult.params ?? {};
-    switch (routeResult.route) {
+  const navigateForRoute = (route: string, params: any, currentTranscript: string) => {
+    const p = params ?? {};
+    switch (route) {
       case 'thought_monster':
-        router.replace({ pathname: '/games/thought-monster', params: { message: params.message ?? params.transcript ?? transcript } });
+        router.replace({ pathname: '/games/thought-monster', params: { message: p.message ?? p.transcript ?? currentTranscript } });
         break;
       case 'focus_boss':
         router.replace('/games/focus-boss');
@@ -204,8 +213,13 @@ export default function VoiceRoomScreen() {
         router.replace('/games/tiny-win');
         break;
       default:
-        router.replace('/(tabs)/chat');
+        router.replace({ pathname: '/(tabs)/chat', params: { text: p.message ?? p.transcript ?? currentTranscript } });
     }
+  };
+
+  const handleExecuteAction = () => {
+    if (!routeResult) return;
+    navigateForRoute(routeResult.route, routeResult.params, transcript);
   };
 
   const busy = transcribeMutation.isPending || routeMutation.isPending;

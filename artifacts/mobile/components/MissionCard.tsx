@@ -24,34 +24,50 @@ const guideIcons: Record<string, keyof typeof Feather.glyphMap> = {
 export function MissionCard({ icon, title, guide, description, aiType, bestFor, onPress }: MissionCardProps) {
   const colors = useColors();
 
+  const getCharacterColor = (char: string) => {
+    switch (char.toLowerCase()) {
+      case 'sera': return colors.sera;
+      case 'kael': return colors.kael;
+      case 'nova': return colors.nova;
+      case 'zen': return colors.zen;
+      case 'arlo': return colors.arlo;
+      default: return colors.primary;
+    }
+  };
+
+  const cardColor = getCharacterColor(guide);
+
   return (
     <Pressable
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.card, borderColor: colors.border },
+        { 
+          backgroundColor: cardColor + '12', 
+          borderColor: cardColor + '40' 
+        },
         pressed && { opacity: 0.82, transform: [{ scale: 0.99 }] },
       ]}
       onPress={onPress}
     >
       <View style={styles.header}>
-        <View style={[styles.iconBox, { backgroundColor: colors.primary + '18' }]}>
-          <Feather name={icon} size={20} color={colors.primary} />
+        <View style={[styles.iconBox, { backgroundColor: cardColor + '24' }]}>
+          <Feather name={icon} size={20} color={cardColor} />
         </View>
-        <View style={[styles.guidePill, { backgroundColor: colors.muted }]}>
-          <Feather name={guideIcons[guide] ?? 'user'} size={12} color={colors.mutedForeground} />
-          <Text style={[styles.guideText, { color: colors.foreground }]}>{guide}</Text>
+        <View style={[styles.guidePill, { backgroundColor: cardColor + '18' }]}>
+          <Feather name={guideIcons[guide] ?? 'user'} size={12} color={cardColor} />
+          <Text style={[styles.guideText, { color: cardColor }]}>{guide}</Text>
         </View>
       </View>
 
       <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
       <Text style={[styles.description, { color: colors.mutedForeground }]}>{description}</Text>
 
-      {aiType ? <Text style={[styles.meta, { color: colors.primary }]}>AI: {aiType}</Text> : null}
+      {aiType ? <Text style={[styles.meta, { color: cardColor }]}>AI: {aiType}</Text> : null}
       {bestFor ? <Text style={[styles.meta, { color: colors.mutedForeground }]}>Best for: {bestFor}</Text> : null}
 
       <View style={styles.footer}>
-        <Text style={[styles.startText, { color: colors.foreground }]}>Start</Text>
-        <Feather name="arrow-right" size={16} color={colors.foreground} />
+        <Text style={[styles.startText, { color: cardColor }]}>Start</Text>
+        <Feather name="arrow-right" size={16} color={cardColor} />
       </View>
     </Pressable>
   );
@@ -59,8 +75,8 @@ export function MissionCard({ icon, title, guide, description, aiType, bestFor, 
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: 20,
+    padding: 18,
     borderWidth: 1,
     minHeight: 204,
     justifyContent: 'space-between',
