@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "crypto";
 import { store } from "../services/store";
-import { generateFocusBossLLM, generateThoughtMonsterLLM, isGeminiConfigured } from "../services/llm";
+import { generateFocusBossLLM, generateThoughtMonsterLLM, gradeCBTArenaLLM, isGeminiConfigured } from "../services/llm";
 
 const router: IRouter = Router();
 
@@ -197,6 +197,109 @@ router.post("/games/focus-boss/create", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "focus-boss/create failed");
     res.status(500).json({ error: "Failed to create focus boss" });
+  }
+});
+
+router.post("/games/cbt-arena/score", async (req, res) => {
+  try {
+    const { scenario, original_reply } = req.body as {
+      scenario: string;
+      original_reply: string;
+    };
+
+    if (!scenario?.trim() || !original_reply?.trim()) {
+      res.status(400).json({ error: "scenario and original_reply are required" });
+      return;
+    }
+
+    let scoreResult = null;
+    if (isGeminiConfigured()) {
+      try {
+        scoreResult = await gradeCBTArenaLLM(scenario, original_reply);
+      } catch (err) {
+        req.log.warn({ err }, "gradeCBTArenaLLM failed, falling back");
+      }
+    }
+
+    if (!scoreResult) {
+      const isAggressive = /lazy|always|never|useless|ruin|hate|blame|fault|bad|worst|ignore/i.test(original_reply);
+      const isShort = original_reply.length < 15;
+
+      scoreResult = {
+        aggression: isAggressive ? "high" : "low" as const,
+        clarity: isShort ? "low" : "high" as const,
+        solution_focus: isShort || isAggressive ? "low" : "high" as const,
+        distortion_pattern: scenario.toLowerCase().includes("deadline") ? "Overgeneralization" : "Catastrophizing",
+        guidance: isAggressive
+          ? "Your response contains emotionally charged words. Try to focus on the objective situation rather than placing blame."
+          : "Good start. Focus on communicating clearly and asking for a resolution.",
+        improved_suggestion: scenario.toLowerCase().includes("deadline")
+          ? "Hi, just wanted to check if there are any blockers with the code push. Let me know how I can support you so we make the deadline."
+          : "It's okay to make mistakes sometimes. I will double check the email templates next time to make sure they are correct."
+      };
+    }
+
+    const gameId = "cbt_" + randomUUID().slice(0, 8);
+
+    store.gameEvents.add({
+      user_id: "demo_user",
+      game_type: "cbt_arena",
+      status: "completed",
+      data: { game_id: gameId, scenario, original_reply, score: scoreResult },
+    });
+
+    res.json({
+      game_id: gameId,
+      ...scoreResult,
+    });
+  } catch (err) {
+    req.log.error({ err }, "cbt-arena/score failed");
+    res.status(500).json({ error: "Failed to grade CBT arena response" });
+  }
+});
+
+router.post("/games/cbt-arena/complete", (req, res) => {
+  try {
+    const { game_id, scenario, final_reframe, distortion } = req.body as {
+      game_id: string;
+      scenario: string;
+      final_reframe: string;
+      distortion?: string;
+    };
+
+    const tp = store.thoughtPairs.add({
+      user_id: "demo_user",
+      original_thought: scenario,
+      reframe: final_reframe,
+      distortion: distortion ?? "overgeneralization",
+      trigger: "cbt_arena_game",
+      character: "Nova",
+    });
+
+    store.memories.add({
+      user_id: "demo_user",
+      memory_type: "thought_pair",
+      title: "Reframe: " + final_reframe.slice(0, 50),
+      summary: `Scenario response reframed and stored.`,
+      content: `Scenario: ${scenario}\nReframe: ${final_reframe}`,
+      emotion: "recovery",
+      trigger: "cbt_arena_game",
+      distortion: distortion ?? "overgeneralization",
+      reframe: final_reframe,
+      character: "Nova",
+      intervention: "cbt_arena_practice",
+      importance: 8,
+    });
+
+    res.json({
+      success: true,
+      reward: "Response mastery unlocked. Reframe stored in Memory Core.",
+      memory_id: tp.id,
+      graph_updated: true,
+    });
+  } catch (err) {
+    req.log.error({ err }, "cbt-arena/complete failed");
+    res.status(500).json({ error: "Failed to complete CBT arena game" });
   }
 });
 

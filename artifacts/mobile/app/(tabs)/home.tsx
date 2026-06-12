@@ -109,11 +109,18 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.twoColumn}>
-        <View style={[styles.smallCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.smallCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+            pressed && styles.pressed,
+          ]}
+          onPress={() => router.push('/games/pulse-scanner')}
+        >
           <Text style={[styles.cardEyebrow, { color: colors.mutedForeground }]}>Signals today</Text>
           <Text style={[styles.signalText, { color: colors.foreground }]}>Typing rhythm slightly elevated</Text>
           <Text style={[styles.signalMeta, { color: colors.mutedForeground }]}>Session 12 min · focus friction medium</Text>
-        </View>
+        </Pressable>
         <View style={[styles.smallCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardEyebrow, { color: colors.mutedForeground }]}>Backend</Text>
           <View style={styles.statusRow}>

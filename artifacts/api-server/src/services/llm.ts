@@ -334,3 +334,43 @@ Return:
     0.35
   );
 }
+
+export async function gradeCBTArenaLLM(
+  scenario: string,
+  userReply: string
+): Promise<{
+  aggression: "low" | "medium" | "high";
+  clarity: "low" | "medium" | "high";
+  solution_focus: "low" | "medium" | "high";
+  distortion_pattern: string;
+  guidance: string;
+  improved_suggestion: string;
+} | null> {
+  const prompt = `Grade the user's reframed response to a difficult scenario from a Cognitive Behavioral Therapy (CBT) perspective. Return JSON only.
+
+Scenario: "${scenario}"
+User's Response: "${userReply}"
+
+Evaluate the response and return this exact JSON structure:
+{
+  "aggression": "low|medium|high",
+  "clarity": "low|medium|high",
+  "solution_focus": "low|medium|high",
+  "distortion_pattern": "Name of cognitive distortion/pattern in user's original thoughts or the scenario, like Overgeneralization, Catastrophizing, Personalization, Mind Reading, or None",
+  "guidance": "Constructive, supportive feedback helping them frame their response better if needed (1-2 sentences)",
+  "improved_suggestion": "An example of a calmer, reframed, assertive but non-aggressive response that is highly solution-focused"
+}`;
+
+  return callGeminiJson<{
+    aggression: "low" | "medium" | "high";
+    clarity: "low" | "medium" | "high";
+    solution_focus: "low" | "medium" | "high";
+    distortion_pattern: string;
+    guidance: string;
+    improved_suggestion: string;
+  }>(
+    prompt,
+    "You are a CBT trainer evaluating user responses. Return valid JSON only. Be highly encouraging and practical."
+  );
+}
+

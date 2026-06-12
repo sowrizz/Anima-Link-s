@@ -52,27 +52,25 @@ function ClassicTabLayout() {
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
           position: "absolute",
-          backgroundColor: isIOS ? "transparent" : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
+          bottom: Platform.OS === "ios" ? 32 : 20,
+          left: 20,
+          right: 20,
+          height: 66,
+          borderRadius: 33,
+          backgroundColor: colors.card,
+          borderWidth: 1.5,
+          borderColor: colors.border,
+          borderTopWidth: 1.5,
           borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
+          elevation: 5,
+          paddingBottom: Platform.OS === "ios" ? 0 : 8,
+          paddingTop: 8,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.background },
-              ]}
-            />
-          ) : null,
+        tabBarBackground: () => null,
       }}
     >
       <Tabs.Screen

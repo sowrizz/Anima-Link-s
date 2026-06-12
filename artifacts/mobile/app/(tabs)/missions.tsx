@@ -49,7 +49,7 @@ const missions = [
     description: 'Practice a hard message or conversation before sending it.',
     aiType: 'roleplay response',
     bestFor: 'meetings and conflict',
-    href: '/support-modes',
+    href: '/games/response-practice',
   },
   {
     icon: 'check-square',

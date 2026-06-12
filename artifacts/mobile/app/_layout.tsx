@@ -40,6 +40,8 @@ function RootLayoutNav() {
       <Stack.Screen name="games/focus-boss" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="games/camera-mission" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="games/tiny-win" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="games/response-practice" options={{ headerShown: false, presentation: 'modal' }} />
+      <Stack.Screen name="games/pulse-scanner" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="support-modes" options={{ title: 'Support Modes' }} />
       <Stack.Screen name="voice-room" options={{ headerShown: false, presentation: 'modal' }} />
       <Stack.Screen name="memory-map" options={{ title: 'Memory Map' }} />
