@@ -1,0 +1,3 @@
+- [api-zod export rule](api-zod-export-rule.md) — lib/api-zod/src/index.ts must ONLY export from ./generated/api, never ./generated/types
+- [expo-router context files](expo-router-context-files.md) — All files in app/ are treated as routes; context files need export default
+- [anima-link backend](anima-link-backend.md) — In-memory store, deterministic fallback, OpenAI optional integration

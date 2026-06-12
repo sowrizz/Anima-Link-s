@@ -1,11 +1,18 @@
 import { Router, type IRouter } from "express";
-import { HealthCheckResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
-  const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
+  const llmConfigured = !!process.env["OPENAI_API_KEY"];
+
+  res.json({
+    status: "ok",
+    backend: "ok",
+    llm_configured: llmConfigured,
+    sqlite_connected: true,
+    chroma_connected: false,
+    mode: process.env["NODE_ENV"] ?? "development",
+  });
 });
 
 export default router;

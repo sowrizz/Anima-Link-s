@@ -1,0 +1,76 @@
+IMPORTANT EXECUTION INSTRUCTION FOR CODEX
+
+You are receiving the full Anima-Link build plan at once because there is no time to send separate prompts.
+
+Do not try to implement everything randomly.
+
+Work strictly in order:
+
+1. First create API contracts and backend endpoint stubs.
+2. Then implement Phase 1.
+3. Then Phase 2.
+4. Continue phase by phase only after the previous phase is runnable.
+5. After each phase, run the relevant checks and update build logs.
+6. Do not rename response fields once used by frontend.
+7. Do not leave broken imports.
+8. If a real module fails, use same-schema fallback and continue.
+9. Prioritize the final demo backbone over optional polish.
+
+Critical priority order:
+
+* Must finish: Phases 1–9
+* Should finish: Phase 10
+* Nice to finish: Phase 11 voice polish
+
+If time is running out, stop adding new features and make the main demo flow stable:
+Home -> Chat -> Memory Recall -> Support Modes -> Thought Challenge -> Camera Grounding -> Focus Session -> Progress Proof -> Memory Map -> Report/Safety.
+
+At the end, summarize:
+
+* completed phases
+* real modules
+* fallback modules
+* commands to run frontend/backend
+* final demo steps
+CAMERA AND VOICE MUST BE ATTEMPTED AS REAL FEATURES FIRST
+
+Camera requirement:
+Do not only show sample JSON. First implement the real camera flow:
+1. Request camera permission.
+2. Allow Take Photo and Pick Image.
+3. Show captured/selected image preview.
+4. Convert/compress image to base64.
+5. Send it to POST /camera/analyze-workspace.
+6. Backend should call a vision model if an API key exists.
+7. Render returned object labels on the result screen.
+8. Only use sample workspace JSON if permission, upload, or vision API fails.
+
+Camera acceptance test:
+A real captured or selected workspace image appears in the app, is sent to backend, and returns object cards such as phone, notebook, water bottle, and assignment sheet.
+
+Voice requirement:
+Do not stop at typed transcript unless recording/transcription fails.
+First implement the real voice flow:
+1. Build Start Recording / Stop Recording button.
+2. Record audio using Expo audio recording.
+3. Save local audio URI.
+4. Upload audio to backend endpoint POST /voice/transcribe.
+5. Backend transcribes audio using configured STT provider if available.
+6. Send transcript to POST /voice/analyze-transcript.
+7. For command phrases, send transcript to POST /voice/route-spell.
+8. Only if audio recording or transcription fails, use typed transcript fallback.
+
+Add backend endpoint:
+POST /voice/transcribe
+
+Required /voice/transcribe response:
+{
+  "transcript": "Anima, battle this thought",
+  "source": "audio",
+  "confidence": "likely"
+}
+
+Voice acceptance test:
+User taps record, says “Anima, battle this thought,” stops recording, transcript appears, and app routes to Thought Challenge. If real transcription fails, typed transcript fallback must still route correctly.
+
+if anything extra present make sure to do it, also ui should look like mentioned in docs/reference_images

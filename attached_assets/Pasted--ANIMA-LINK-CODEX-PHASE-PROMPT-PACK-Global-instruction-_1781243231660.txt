@@ -1,0 +1,1179 @@
+# ANIMA-LINK CODEX PHASE PROMPT PACK
+
+## Global instruction to paste at the top of every Codex phase prompt
+
+You are building Anima-Link, a React Native Expo + FastAPI + LLM + SQLite + ChromaDB full-stack MVP.
+
+Before coding, read and follow these reference documents in the repo
+
+* `Anima-Link_2-Person_Build_Phase_Document.docx` — Contains the detailed two-person development plan, implementation phases, feature breakdown, backend/frontend responsibilities, API requirements, and build sequence. Refer to this document as the primary execution roadmap and source of truth for development phases, implementation order, and overall build progression.
+* `Pasted markdown.md` — Contains consolidated project notes, requirements, feature descriptions, workflows, and implementation guidance gathered during planning. Refer to this document for additional context, requirements clarification, implementation details, and supporting information.
+* `1.pages and details.md` — Contains page-by-page specifications, screen descriptions, user flows, navigation structure, and expected functionality for each app page. Refer to this document when building screens, implementing page behavior, and validating user journeys and navigation flows.
+* `3.games.md` — Contains details of the mini-games, gameplay mechanics, objectives, UI expectations, and interaction flows. Refer to this document when implementing game-related features, interactions, and gameplay experiences.
+* `Anima-Link_Page_Mockup_Prompts.docx` — Contains UI mockup prompts, layout guidance, visual design directions, screen-generation references, and interface flow guidance. Refer to this document as the primary reference for UI/UX design, screen layouts, visual styling, component structure, and user flow implementation.
+
+Use these documents as the source of truth for:
+
+* product concept
+* app pages
+* UI style
+* game mechanics
+* API contracts
+* two-person split
+* fallback rules
+* final demo flow
+
+Non-negotiable rules:
+
+1. Build real first, fallback second.
+2. Keep fallback responses with the same API shape as the real endpoint.
+3. Do not rename API response fields without updating `docs/API_CONTRACT.md`.
+4. Frontend must never invent a different data shape from backend.
+5. Backend must provide endpoint stubs early so frontend is never blocked.
+6. UI must follow the mature premium Anima-Link style: warm cream background, muted pastel cards, subtle line icons, clean typography, no childish mascot/fantasy visuals unless the internal game mechanic requires it.
+7. The sacred demo sentence is:
+   `I’ll never finish this assignment. I always mess up before exams.`
+8. The final demo backbone is:
+   `Home -> Chat/Voice -> LLM analysis -> Memory retrieval -> Companion Council -> Thought Monster -> Camera Mission -> Focus Boss -> Tiny Win -> Thought Graph -> Report/Safety`.
+
+After completing each phase:
+
+* run the app/build/tests where possible
+* update `docs/API_CONTRACT.md` if endpoints changed
+* update `docs/BUILD_LOG_PERSON_A.md` and/or `docs/BUILD_LOG_PERSON_B.md`
+* list what is real, what is fallback, and what still needs integration
+* do not leave broken imports or half-created routes
+
+# PHASE 1 PROMPT — Foundation, repo structure, Expo + FastAPI connectivity
+
+Implement Phase 1: Foundation and connectivity for Anima-Link.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, especially Phase 1, repository structure, API contracts first, and two-person split.
+* Read `Anima-Link_Page_Mockup_Prompts.docx` for the visual system.
+* Read `Pasted markdown.md` for folder structure and setup commands.
+
+Goal:
+Create a clean full-stack repo foundation where:
+
+* Expo app opens in Expo Go
+* FastAPI backend runs locally
+* frontend can call `GET /health`
+* `/health` returns backend, LLM, SQLite, and Chroma connection statuses
+
+Required repo structure:
+
+```txt
+anima-link/
+  frontend/
+    app/
+      _layout.tsx
+      index.tsx
+      onboarding/
+      tabs/
+      games/
+      reports/
+    components/
+    services/
+    constants/
+    types/
+  backend/
+    main.py
+    app/
+      routes/
+      services/
+      models/
+      data/
+    requirements.txt
+    .env.example
+  docs/
+    reference/
+    API_CONTRACT.md
+    BUILD_LOG_PERSON_A.md
+    BUILD_LOG_PERSON_B.md
+    DEMO_SCRIPT.md
+  README.md
+```
+
+Frontend tasks:
+
+* Set up Expo Router.
+* Create bottom tabs: Home, Chat, Missions, Memory, Safety.
+* Create `services/api.ts` with a configurable `BASE_URL`.
+* Create a Home screen with a connection/debug card.
+* The Home screen should call `GET /health` and show:
+
+  * Backend connected
+  * LLM configured
+  * SQLite connected
+  * Chroma connected
+* Use the mature visual direction from the mockup prompt document: cream background, muted pastel cards, clean line icons, rounded cards.
+
+Backend tasks:
+
+* Set up FastAPI app.
+* Create route `GET /health`.
+* Return JSON:
+
+```json
+{
+  "backend": "ok",
+  "llm_configured": true,
+  "sqlite_connected": true,
+  "chroma_connected": true,
+  "mode": "development"
+}
+```
+
+* Add safe fallback values if LLM/SQLite/Chroma are not configured yet.
+* Add `.env.example`.
+* Add `requirements.txt`.
+* Make backend runnable using:
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Documentation tasks:
+
+* Create or update `docs/API_CONTRACT.md` with `/health`.
+* Create `README.md` setup instructions for frontend and backend.
+* Update build logs.
+
+Acceptance test:
+
+* Expo app opens.
+* Tabs render.
+* Backend runs.
+* Home screen successfully displays `/health` status.
+* No broken imports.
+
+# PHASE 2 PROMPT — SQLite + ChromaDB memory foundation
+
+Implement Phase 2: Database and persistent memory foundation.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 2.
+* Read `Anima-Link-Idea.pdf`, especially Persistent Memory System / Vector Memory Graph.
+* Read `Pasted markdown.md`, Phase 2.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Memory Core and Memory Map sections.
+
+Goal:
+Build real memory infrastructure before games. Anima-Link must prove it remembers previous patterns instead of acting like a stateless chatbot.
+
+Backend tasks:
+
+* Create SQLite database in `backend/app/data/anima.db`.
+* Create SQLite service in `backend/app/services/sqlite_store.py`.
+* Create ChromaDB service in `backend/app/services/memory_store.py`.
+* Create collection `anima_memories`.
+* Create tables:
+
+  * users
+  * sessions
+  * messages
+  * analyses
+  * memories
+  * thought_pairs
+  * tiny_wins
+  * character_feedback
+  * game_events
+  * reports
+* Seed 8-12 demo memories:
+
+  * April 12 exam week memory
+  * meeting anxiety memory
+  * focus win memory
+  * previous thought-to-reframe memory
+  * tiny win proof memory
+  * character feedback memory
+  * low-energy day memory
+  * presentation fear memory
+* Implement:
+
+```txt
+POST /memory/add
+POST /memory/search
+GET /memory/all
+GET /memory/graph
+```
+
+* `/memory/search` should use Chroma first.
+* If Chroma fails, use SQLite keyword/tag search with the exact same response shape.
+
+Required `/memory/search` response:
+
+```json
+{
+  "query": "exam stress",
+  "results": [
+    {
+      "id": "mem_exam_001",
+      "title": "April 12 exam week",
+      "summary": "You completed one section after starting small.",
+      "trigger": "exam stress",
+      "emotion": "high_stress",
+      "distortion": "overgeneralization",
+      "reframe": "I can start with one section.",
+      "character": "Nova",
+      "created_at": "2026-04-12T20:30:00"
+    }
+  ],
+  "source": "chroma"
+}
+```
+
+Frontend tasks:
+
+* Build Memory Core screen.
+* Add:
+
+  * search bar
+  * category chips: Exam stress, Meetings, Focus wins, Reframes, Progress proof, Support modes
+  * memory result cards
+  * loading/empty/error states
+* Connect to:
+
+  * `POST /memory/search`
+  * `GET /memory/all`
+* Memory card must show title, trigger, reframe, character, and date.
+* Keep mature visual language: notebook/card style, muted pastel tags, no childish fantasy labels.
+
+Documentation tasks:
+
+* Update `docs/API_CONTRACT.md`.
+* Update build logs with DB status and fallback status.
+
+Acceptance test:
+
+* Searching `exam stress` returns the April 12 memory.
+* Memory Core screen displays backend memory results.
+* If Chroma breaks, SQLite fallback still returns real stored memory.
+
+# PHASE 3 PROMPT — Real LLM chat analysis + structured JSON
+
+Implement Phase 3: Real LLM message analysis and Chat Insight screen.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 3.
+* Read `Anima-Link_Team-Artemis_HackArena-Bangalore.pdf`, especially the AI pipeline and structured reasoning sections.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Chat Insight section.
+* Read `Anima-Link-Idea.pdf`, Mental State Fusion Engine and Cognitive Restructuring Engine.
+
+Goal:
+When user types the sacred demo sentence, backend should:
+
+* save the message
+* run safety pre-check
+* run real LLM JSON analysis
+* detect absolutist words
+* detect distortion
+* calculate MSI
+* search memory
+* return recommended path
+* store analysis
+
+Sacred test input:
+
+```txt
+I’ll never finish this assignment. I always mess up before exams.
+```
+
+Backend tasks:
+
+* Create central LLM service:
+
+```txt
+call_llm_json(prompt, schema_name)
+```
+
+* Use strict JSON-only prompting.
+* Use Pydantic validation.
+* Retry once if JSON is invalid.
+* Only use fallback if LLM times out or returns invalid JSON twice.
+* Implement:
+
+```txt
+POST /analyze-message
+```
+
+* Flow:
+
+```txt
+1. safety pre-check
+2. save message to SQLite
+3. run LLM analysis
+4. detect absolutist words deterministically too
+5. search memory using memory_query
+6. save analysis
+7. return analysis + memory_results
+```
+
+Required response:
+
+```json
+{
+  "analysis_id": "ana_001",
+  "message_id": "msg_001",
+  "emotion": "high_stress",
+  "msi_score": 82,
+  "msi_label": "High Strain",
+  "absolutist_words": ["never", "always"],
+  "distortion": "overgeneralization",
+  "trigger": "exam_assignment_pressure",
+  "intent": "needs_cbt_support",
+  "recommended_path": ["Kael", "Nova", "Arlo"],
+  "memory_query": ["exam stress", "assignment", "never finish"],
+  "suggested_game": "thought_monster_battle",
+  "safe_response": "You used 'never' and 'always'. Before we believe that thought, let's test it.",
+  "memory_results": [
+    {
+      "id": "mem_exam_001",
+      "title": "April 12 exam week",
+      "summary": "You completed one section after starting small.",
+      "trigger": "exam stress",
+      "reframe": "I can start with one section."
+    }
+  ]
+}
+```
+
+Frontend tasks:
+
+* Build Chat screen.
+* Add message list, user bubble, assistant bubble, input bar.
+* On submit, call `/analyze-message`.
+* Show structured insight card:
+
+  * Mood
+  * MSI score/label
+  * Language pattern
+  * Thought pattern
+  * Memory recalled
+  * Suggested path
+* Add action buttons:
+
+  * Challenge thought
+  * Start reset
+  * Begin focus session
+  * Recall proof
+  * Switch support mode
+* Chat Insight visual style must match mockup doc: minimal chat, one clear structured card, muted lavender user bubble, off-white assistant bubble.
+
+Documentation tasks:
+
+* Update `docs/API_CONTRACT.md`.
+* Update build logs.
+
+Acceptance test:
+The sacred sentence returns:
+
+* High Strain
+* never/always
+* overgeneralization
+* April 12 exam memory
+* Kael -> Nova -> Arlo
+* suggested game = thought_monster_battle
+
+# PHASE 4 PROMPT — Companion Council / Support Modes routing
+
+Implement Phase 4: Companion Council / Support Modes and adaptive character routing.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 4.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Support Modes / Companion Council.
+* Read `Anima-Link-Idea.pdf`, Adaptive Character Engine.
+* Read `3.games.pdf`, character guide sections.
+
+Goal:
+The five characters should not be just skins. They should act as therapeutic support modes and route based on analysis + memory.
+
+Characters:
+
+* Sera — Reflect / emotional mirroring
+* Kael — Ground / stabilization
+* Nova — Reframe / CBT challenge
+* Zen — Slow Down / mindfulness/acceptance
+* Arlo — Act / behavioral activation/tiny steps
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /characters/route
+```
+
+* Input:
+
+```json
+{
+  "analysis": {},
+  "memory_results": [],
+  "user_preference": "challenge_me"
+}
+```
+
+* Routing rules:
+
+  * High Strain -> Kael first
+  * distortion detected -> Nova
+  * action/focus needed -> Arlo
+  * low energy -> Sera
+  * overwhelm/acceptance -> Zen
+* Return:
+
+```json
+{
+  "recommended_path": ["Kael", "Nova", "Arlo"],
+  "reason": "High stress and overgeneralization detected. Stabilize first, then reframe, then take one small action.",
+  "character_lines": {
+    "Sera": "That sounds heavy. I can reflect it back gently.",
+    "Kael": "Breathe first. We slow the storm before solving.",
+    "Nova": "The word 'never' is the part we need to test.",
+    "Zen": "Pause. We do not need to solve everything at once.",
+    "Arlo": "One section. One timer. No perfection."
+  }
+}
+```
+
+Frontend tasks:
+
+* Build Support Modes / Companion Council screen.
+* Show five elegant rounded cards.
+* Show recommended support path card.
+* Buttons:
+
+  * Start recommended path
+  * Choose manually
+* From Chat Insight, allow opening this screen with analysis context.
+* Use mature visual labels in UI:
+
+  * Support Modes
+  * Ground -> Reframe -> Act
+* No cartoon character faces. Use subtle line icons.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+From Chat Insight, user opens Support Modes and sees:
+
+* five character cards
+* recommended path Kael -> Nova -> Arlo
+* reason based on High Strain + overgeneralization
+
+# PHASE 5 PROMPT — Thought Monster Battle / Thought Challenge
+
+Implement Phase 5: Thought Monster Battle as the main signature game.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 5.
+* Read `3.games.pdf`, Thought Monster Battle section.
+* Read `anima-link-features.pdf`, Thought Monster Battle section.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Thought Challenge section.
+* Read `Anima-Link-Idea.pdf`, Cognitive Restructuring Engine.
+
+Goal:
+Turn the detected thought distortion into an interactive CBT flow. Internally it can use battle mechanics, but the visual UI should stay mature unless the current screen intentionally uses game language.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /games/thought-monster/start
+POST /games/thought-monster/complete
+```
+
+* Start endpoint input:
+
+```json
+{
+  "message": "I’ll never finish this assignment. I always mess up before exams.",
+  "analysis_id": "ana_001",
+  "memory_results": []
+}
+```
+
+* Start endpoint returns:
+
+```json
+{
+  "monster_name": "Never-Finish Beast",
+  "monster_type": "Overgeneralization",
+  "trigger_words": ["never", "always"],
+  "weakness": "Evidence Check",
+  "guide": "Nova",
+  "hp": 100,
+  "rounds": [
+    {
+      "title": "Detect the Trick",
+      "question": "What is this thought trying to make you believe?"
+    },
+    {
+      "title": "Evidence Check",
+      "question": "What evidence does not fully support the word 'never'?"
+    },
+    {
+      "title": "Memory Proof",
+      "question": "What past moment shows this was not completely true?"
+    },
+    {
+      "title": "Tiny Step",
+      "question": "What is one action under 5 minutes?"
+    }
+  ],
+  "final_reframe_suggestion": "I do not need to finish everything right now. I can start with one section.",
+  "reward": "Reality Sword"
+}
+```
+
+* Complete endpoint must:
+
+  * save thought_pair to SQLite
+  * add semantic memory to ChromaDB
+  * return stored status and next recommended action
+
+Frontend tasks:
+
+* Build Thought Monster / Thought Challenge screen.
+* Screen states:
+
+  1. spawn / pattern detected
+  2. round cards
+  3. memory proof card
+  4. tiny step choice
+  5. final reframe card
+  6. reward/completion card
+* Show HP/progress if using game style, but keep visuals polished.
+* Use mature screen title if needed: `Thought Challenge`.
+* After completion, route to Camera Mission or Focus Session.
+
+Fallback:
+
+* If LLM fails, use a generic CBT template.
+* Still use the user’s actual thought.
+* Still store thought -> reframe.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+Sacred sentence creates:
+
+* Never-Finish Beast
+* Overgeneralization
+* trigger words never/always
+* memory proof from April 12
+* final reframe
+* stored thought_pair memory
+
+# PHASE 6 PROMPT — Camera Missions / Camera Grounding
+
+Implement Phase 6: Camera Missions / Camera Grounding workspace analysis.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 6.
+* Read `3.games.pdf`, Camera Missions section.
+* Read `anima-link-features.pdf`, Room Transformation Mode and Tiny Win Camera Proof sections.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Camera Grounding / Room Scan section.
+
+Goal:
+Create a visual wow screen where the user captures/selects a workspace image and Anima-Link maps real objects to regulation/focus labels.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /camera/analyze-workspace
+```
+
+* Accept:
+
+```json
+{
+  "image_base64": "...",
+  "mode": "room_transformation"
+}
+```
+
+* If vision LLM is available, call it.
+* If vision fails, return sample JSON with the same shape.
+* Prompt rules:
+
+  * analyze workspace objects only
+  * do not analyze faces
+  * do not diagnose emotions from images
+  * use confidence values like high/likely/unclear
+* Required response:
+
+```json
+{
+  "scene_type": "workspace",
+  "objects": [
+    {
+      "name": "phone",
+      "confidence": "likely",
+      "game_label": "Distraction Goblin",
+      "category": "distraction"
+    },
+    {
+      "name": "notebook",
+      "confidence": "likely",
+      "game_label": "Focus Portal",
+      "category": "focus"
+    },
+    {
+      "name": "water bottle",
+      "confidence": "likely",
+      "game_label": "Health Potion",
+      "category": "grounding"
+    },
+    {
+      "name": "assignment sheet",
+      "confidence": "unclear",
+      "game_label": "Boss Gate",
+      "category": "task"
+    }
+  ],
+  "recommended_mission": "Move one distraction away and open the focus object."
+}
+```
+
+Frontend tasks:
+
+* Build Camera Mission / Camera Grounding screen.
+* Support:
+
+  * camera permission request
+  * take photo
+  * pick image fallback
+  * preview image
+  * analyze workspace button
+  * object label cards
+  * recommended mission card
+  * Start Focus Session button
+  * Save Progress Proof button
+* Use mature UI labels:
+
+  * Phone -> Distraction
+  * Notebook -> Focus object
+  * Water bottle -> Grounding object
+  * Assignment -> Task anchor
+* Internal game labels can still be stored from backend.
+
+Fallback:
+
+* If camera permission fails, use image picker.
+* If image upload fails, use sample workspace JSON.
+* Do not block demo.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+A captured or selected image returns workspace labels and a mission recommendation.
+
+# PHASE 7 PROMPT — Focus Boss Fight / Focus Session
+
+Implement Phase 7: Focus Boss Fight / Focus Session.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 7.
+* Read `3.games.pdf`, Focus Boss Fight section.
+* Read `anima-link-features.pdf`, Focus Boss Fight and Desk Clean-Up Sprint.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Focus Session section.
+
+Goal:
+Turn a messy goal into one small focus action with a timer, checklist, and Arlo support.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /games/focus-boss/create
+```
+
+* Input:
+
+```json
+{
+  "goal": "I need to do DBMS but I don’t know where to start.",
+  "linked_thought": "I’ll never finish this assignment.",
+  "camera_objects": []
+}
+```
+
+* Return:
+
+```json
+{
+  "boss_name": "Deadline Demon",
+  "main_task": "DBMS assignment",
+  "tiny_step": "Open the assignment and start Question 1.",
+  "estimated_time_minutes": 5,
+  "battle_plan": [
+    "Move phone away",
+    "Open notebook",
+    "Start timer",
+    "Write one line",
+    "Capture tiny win"
+  ],
+  "character": "Arlo"
+}
+```
+
+* Store game event in SQLite.
+* If LLM fails, parse a simple local fallback plan from goal text.
+
+Frontend tasks:
+
+* Build Focus Session screen.
+* Components:
+
+  * goal card
+  * timer
+  * progress bar or circular progress
+  * checklist
+  * current update card
+  * Arlo support mode label
+  * Start timer / Capture proof / End session buttons
+* HP/boss naming can be internal or subtle, but UI should look like a premium productivity focus session.
+* Checklist updates local state.
+* Timer should work locally.
+* On completion, route to Tiny Win / Progress Proof.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+Focus Session generates Deadline Demon / DBMS plan, timer runs, checklist works, and completion routes to Tiny Win.
+
+# PHASE 8 PROMPT — Tiny Win Proof / Progress Proof
+
+Implement Phase 8: Tiny Win Proof / Progress Proof.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 8.
+* Read `3.games.pdf`, Tiny Win Proof Game section.
+* Read `anima-link-features.pdf`, Tiny Win Camera Proof section.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Progress Proof / Tiny Win section.
+
+Goal:
+Store a small completed action as evidence against a negative thought. This is one of the most important memory credibility moments.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /tiny-win/store
+```
+
+* Input:
+
+```json
+{
+  "user_id": "demo_user",
+  "proof_type": "written work",
+  "completed_action": "Started Section 1",
+  "linked_negative_thought": "I never finish.",
+  "counter_evidence": "I started one section today.",
+  "character": "Arlo",
+  "source": "focus_session"
+}
+```
+
+* Must:
+
+  * save to SQLite tiny_wins table
+  * add to ChromaDB as semantic memory
+  * create/update graph data
+  * return artifact/reward
+* Return:
+
+```json
+{
+  "stored": true,
+  "artifact": "Tiny Win Crystal",
+  "room": "Proof Mountain",
+  "counter_evidence": "Started Section 1",
+  "graph_updates": [
+    "Tiny Win -> supports -> Proof Memory",
+    "Proof Memory -> weakens -> I never finish"
+  ]
+}
+```
+
+Frontend tasks:
+
+* Build Progress Proof screen.
+* Prompt:
+
+  * What did you complete?
+* Options:
+
+  * Wrote one line
+  * Opened notebook
+  * Moved phone away
+  * Finished one question
+  * Completed reset
+  * Custom
+* Ask:
+
+  * Which thought does this proof weaken?
+* Show proof saved card:
+
+  * Started Section 1
+  * This supports: “I can start with one section.”
+* Buttons:
+
+  * Capture proof
+  * Store in memory
+  * View memory map
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+Tiny Win stores successfully in SQLite + Chroma and returns graph updates.
+
+# PHASE 9 PROMPT — Thought Graph / Memory Map
+
+Implement Phase 9: Thought Graph / Memory Map.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 9.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Memory Map / Thought Graph.
+* Read `Anima-Link-Idea.pdf`, Persistent Memory System.
+* Read `3.games.pdf`, Memory Museum / Thought Graph Rewards.
+
+Goal:
+Make the user’s progress visible as a graph/path:
+Exam Stress -> Never thought -> Overgeneralization -> Reframe -> Focus step -> Progress proof
+
+Backend tasks:
+
+* Implement or improve:
+
+```txt
+GET /memory/graph
+```
+
+* Return:
+
+```json
+{
+  "nodes": [
+    {
+      "id": "exam_stress",
+      "label": "Exam Stress",
+      "type": "trigger"
+    },
+    {
+      "id": "never_finish",
+      "label": "Never-Finish Beast",
+      "type": "thought"
+    },
+    {
+      "id": "overgeneralization",
+      "label": "Overgeneralization",
+      "type": "distortion"
+    },
+    {
+      "id": "nova_reframe",
+      "label": "Nova Reframe",
+      "type": "reframe"
+    },
+    {
+      "id": "focus_step",
+      "label": "Started Section 1",
+      "type": "action"
+    },
+    {
+      "id": "tiny_win",
+      "label": "Progress Proof",
+      "type": "proof"
+    }
+  ],
+  "edges": [
+    {
+      "from": "exam_stress",
+      "to": "never_finish",
+      "label": "triggered"
+    },
+    {
+      "from": "never_finish",
+      "to": "overgeneralization",
+      "label": "detected as"
+    },
+    {
+      "from": "overgeneralization",
+      "to": "nova_reframe",
+      "label": "reframed by"
+    },
+    {
+      "from": "nova_reframe",
+      "to": "focus_step",
+      "label": "led to"
+    },
+    {
+      "from": "focus_step",
+      "to": "tiny_win",
+      "label": "proved by"
+    }
+  ]
+}
+```
+
+* If graph generation is incomplete, build deterministic graph from latest stored session events.
+
+Frontend tasks:
+
+* Build Memory Map / Thought Graph screen.
+* For MVP, use a polished vertical/card-based graph first.
+* Do not waste time on a heavy graph library unless everything else works.
+* Show:
+
+  * nodes
+  * connecting labels
+  * selected node detail card
+  * buttons: View memory, Add note, Export summary
+* Add memory rooms as optional visual chips:
+
+  * Focus Forest
+  * Proof Mountain
+  * Breakthrough Gallery
+  * Calm Garden
+* In mature UI, use Memory Map / Progress Proof labels.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+After Tiny Win, Memory Map shows the full journey from Exam Stress to Progress Proof.
+
+# PHASE 10 PROMPT — Reports, Privacy, Safety
+
+Implement Phase 10: Reports, Privacy, and deterministic Safety Center.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 10.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Weekly Reflection and Privacy & Safety Center.
+* Read `Anima-Link-Idea.pdf`, Ethical Privacy Governance Layer and Clinical-Grade Engineering Layer.
+* Read `Anima-Link_Team-Artemis_HackArena-Bangalore.pdf`, Clinical Grade Differentiation and Key Features II.
+
+Goal:
+Show judges that Anima-Link is not just a chatbot. It has privacy controls, deterministic safety routing, and therapist-useful reports.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+GET /reports/weekly
+POST /safety/check
+```
+
+* `/reports/weekly` should summarize from SQLite:
+
+  * MSI peak
+  * top trigger
+  * top distortion
+  * interventions used
+  * thought -> reframe breakthroughs
+  * tiny wins
+  * character effectiveness
+* Required report response:
+
+```json
+{
+  "period": "demo_week",
+  "msi_peak": "High Strain",
+  "top_trigger": "exam deadline",
+  "top_distortion": "overgeneralization",
+  "most_helpful_intervention": "Reframe + 5-minute focus sprint",
+  "breakthrough": "I can start with one section.",
+  "tiny_wins": ["Started Section 1"],
+  "character_effectiveness": {
+    "Nova": "helpful for reframing",
+    "Arlo": "helpful for action"
+  }
+}
+```
+
+* `/safety/check` should be deterministic and rule-based.
+* Do not rely on LLM for safety routing.
+* Keep safety response general and non-graphic.
+* Return:
+
+```json
+{
+  "route": "breathing_reset",
+  "llm_bypass": true,
+  "message": "High strain detected. Normal chat paused. Starting a grounding reset.",
+  "actions": ["start_breathing", "open_safety_center"]
+}
+```
+
+Frontend tasks:
+
+* Build Weekly Reflection / Report screen.
+* Build Privacy & Safety Center screen.
+* Privacy toggles:
+
+  * Chat analysis
+  * Voice analysis
+  * Camera grounding
+  * Memory storage
+  * Therapist export
+  * Trusted contact support
+* Transparency card:
+
+  * PII stripping: Active
+  * Cloud AI: Optional
+  * Local fallback: Available
+  * Memory snippets used: 2
+* Safety card:
+
+  * explain that high-strain moments can pause normal AI chat and route to grounding/support actions
+* Data buttons:
+
+  * Manage memory
+  * Export data
+  * Delete data
+* No unsupported claims. No diagnosis claims. No medical replacement language.
+
+Documentation tasks:
+
+* Update API contract.
+* Update build logs.
+
+Acceptance test:
+Report screen summarizes the demo session. Safety screen clearly shows deterministic LLM bypass design.
+
+# PHASE 11 PROMPT — Voice Room, Voice Shortcuts, final fallback locks, demo rehearsal
+
+Implement Phase 11: Voice Room, Voice Shortcuts, fallback locks, and final demo polish.
+
+Reference first:
+
+* Read `Anima-Link_2-Person_Build_Phase_Document.docx`, Phase 11 and Final Demo Script.
+* Read `3.games.pdf`, Voice Spell Missions and Voice Room sections.
+* Read `anima-link-features.pdf`, Character Voice Missions and Voice-Controlled Thought Graph.
+* Read `Anima-Link_Page_Mockup_Prompts.docx`, Voice Room and Voice Shortcuts.
+
+Goal:
+Add a voice-native layer without risking the demo. Actual recording can be attempted, but typed transcript fallback must work through the real backend.
+
+Backend tasks:
+
+* Implement:
+
+```txt
+POST /voice/route-spell
+POST /voice/analyze-transcript
+```
+
+* Exact phrase matching first:
+
+  * `Anima, shield me` -> Focus Session
+  * `Anima, calm storm` -> Breathing Reset
+  * `Anima, battle this thought` -> Thought Monster
+  * `Anima, tiny step` -> Focus Session / tiny action
+  * `Anima, memory check` -> Memory Core
+  * `Anima, soft mode` -> Sera
+  * `Anima, challenge mode` -> Nova
+  * `Anima, boss fight` -> Focus Boss
+* LLM fallback only if phrase is not exact.
+* Required route response:
+
+```json
+{
+  "command": "battle_this_thought",
+  "confidence": "high",
+  "route": "ThoughtMonsterBattle",
+  "display_text": "Challenge this thought"
+}
+```
+
+* `/voice/analyze-transcript` should pass typed transcript through the same real `/analyze-message` intelligence.
+
+Frontend tasks:
+
+* Build Voice Room screen:
+
+  * modes: Vent, Calm, Reframe, Plan, Focus
+  * waveform card
+  * timer
+  * transcript card
+  * insight card
+  * buttons: Start recording, Analyze, Start grounding, Save reflection
+* Build Voice Shortcuts screen:
+
+  * shortcut chips
+  * recognized command card
+  * route preview
+* Attempt Expo AV recording only if stable.
+* Typed transcript fallback must always work.
+* Wire `Anima, battle this thought` to Thought Monster route.
+
+Fallback locks:
+
+* Add visible fallback mode indicator only in debug/dev areas, not main UI.
+* Confirm every major backend endpoint returns stable schema even if LLM/vision/voice fails.
+* Confirm frontend handles loading, empty, error, and fallback states.
+
+Final demo rehearsal:
+Follow this exact demo flow:
+
+1. Open Home.
+2. Show Anima State and backend connected.
+3. Go to Chat.
+4. Type: `I’ll never finish this assignment. I always mess up before exams.`
+5. Show High Strain, never/always, overgeneralization, April 12 memory, Kael -> Nova -> Arlo.
+6. Open Support Modes.
+7. Start Thought Monster / Thought Challenge.
+8. Complete reframe.
+9. Open Camera Grounding.
+10. Show workspace object labels.
+11. Start Focus Session.
+12. Complete checklist/timer.
+13. Store Progress Proof.
+14. Open Memory Map.
+15. Open Weekly Report and Privacy/Safety.
+
+Documentation tasks:
+
+* Update `docs/DEMO_SCRIPT.md`.
+* Update `docs/API_CONTRACT.md`.
+* Update both build logs.
+* Add README demo instructions.
+
+Acceptance test:
+The app can run the full demo without crashing, even if camera/voice/LLM fallback activates.

@@ -3,20 +3,38 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Anima-Link API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: analyze
+    description: Message analysis
+  - name: memory
+    description: Memory operations
+  - name: characters
+    description: Character routing
+  - name: games
+    description: Game operations
+  - name: camera
+    description: Camera analysis
+  - name: voice
+    description: Voice operations
+  - name: tiny-win
+    description: Tiny win proof
+  - name: reports
+    description: Report generation
+  - name: safety
+    description: Safety routing
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
+      description: Returns server health and service statuses
       responses:
         "200":
           description: Healthy
@@ -24,6 +42,275 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /analyze-message:
+    post:
+      operationId: analyzeMessage
+      tags: [analyze]
+      summary: Analyze a user message
+      description: Runs LLM analysis, MSI scoring, memory search, distortion detection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeMessageRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageAnalysis"
+
+  /memory/add:
+    post:
+      operationId: addMemory
+      tags: [memory]
+      summary: Add a memory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddMemoryRequest"
+      responses:
+        "200":
+          description: Memory added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddMemoryResponse"
+
+  /memory/search:
+    post:
+      operationId: searchMemory
+      tags: [memory]
+      summary: Search memories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchMemoryRequest"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemorySearchResponse"
+
+  /memory/all:
+    get:
+      operationId: getAllMemories
+      tags: [memory]
+      summary: Get all memories
+      responses:
+        "200":
+          description: All memories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllMemoriesResponse"
+
+  /memory/graph:
+    get:
+      operationId: getMemoryGraph
+      tags: [memory]
+      summary: Get memory graph
+      responses:
+        "200":
+          description: Memory graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryGraph"
+
+  /characters/route:
+    post:
+      operationId: routeCharacter
+      tags: [characters]
+      summary: Route to companion characters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CharacterRouteRequest"
+      responses:
+        "200":
+          description: Character routing result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CharacterRouteResponse"
+
+  /games/thought-monster/start:
+    post:
+      operationId: startThoughtMonster
+      tags: [games]
+      summary: Start a Thought Monster Battle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThoughtMonsterStartRequest"
+      responses:
+        "200":
+          description: Game started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThoughtMonsterGame"
+
+  /games/thought-monster/complete:
+    post:
+      operationId: completeThoughtMonster
+      tags: [games]
+      summary: Complete a Thought Monster Battle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThoughtMonsterCompleteRequest"
+      responses:
+        "200":
+          description: Game completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThoughtMonsterResult"
+
+  /camera/analyze-workspace:
+    post:
+      operationId: analyzeWorkspace
+      tags: [camera]
+      summary: Analyze workspace from camera image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CameraAnalyzeRequest"
+      responses:
+        "200":
+          description: Workspace analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CameraAnalysisResult"
+
+  /games/focus-boss/create:
+    post:
+      operationId: createFocusBoss
+      tags: [games]
+      summary: Create a Focus Boss Fight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusBossCreateRequest"
+      responses:
+        "200":
+          description: Focus boss plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusBossPlan"
+
+  /tiny-win/store:
+    post:
+      operationId: storeTinyWin
+      tags: [tiny-win]
+      summary: Store a tiny win proof
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TinyWinRequest"
+      responses:
+        "200":
+          description: Tiny win stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TinyWinResponse"
+
+  /reports/weekly:
+    get:
+      operationId: getWeeklyReport
+      tags: [reports]
+      summary: Get weekly report
+      responses:
+        "200":
+          description: Weekly report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReport"
+
+  /safety/check:
+    post:
+      operationId: safetyCheck
+      tags: [safety]
+      summary: Safety screening
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SafetyCheckRequest"
+      responses:
+        "200":
+          description: Safety result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SafetyCheckResponse"
+
+  /voice/transcribe:
+    post:
+      operationId: transcribeVoice
+      tags: [voice]
+      summary: Transcribe audio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceTranscribeRequest"
+      responses:
+        "200":
+          description: Transcription result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceTranscribeResponse"
+
+  /voice/route-spell:
+    post:
+      operationId: routeVoiceSpell
+      tags: [voice]
+      summary: Route voice command
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VoiceRouteRequest"
+      responses:
+        "200":
+          description: Voice routing result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoiceRouteResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +318,678 @@ components:
       properties:
         status:
           type: string
+        backend:
+          type: string
+        llm_configured:
+          type: boolean
+        sqlite_connected:
+          type: boolean
+        chroma_connected:
+          type: boolean
+        mode:
+          type: string
       required:
         - status
+        - backend
+        - llm_configured
+        - sqlite_connected
+        - chroma_connected
+        - mode
 
+    AnalyzeMessageRequest:
+      type: object
+      properties:
+        message:
+          type: string
+        user_id:
+          type: string
+        session_id:
+          type: string
+      required:
+        - message
+
+    MessageAnalysis:
+      type: object
+      properties:
+        analysis_id:
+          type: string
+        message_id:
+          type: string
+        emotion:
+          type: string
+        msi_score:
+          type: integer
+        msi_label:
+          type: string
+        absolutist_words:
+          type: array
+          items:
+            type: string
+        distortion:
+          type: string
+        trigger:
+          type: string
+        intent:
+          type: string
+        recommended_path:
+          type: array
+          items:
+            type: string
+        memory_query:
+          type: array
+          items:
+            type: string
+        suggested_game:
+          type: string
+        safe_response:
+          type: string
+        memory_results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryItem"
+      required:
+        - analysis_id
+        - message_id
+        - emotion
+        - msi_score
+        - msi_label
+        - absolutist_words
+        - distortion
+        - trigger
+        - intent
+        - recommended_path
+        - memory_query
+        - suggested_game
+        - safe_response
+        - memory_results
+
+    MemoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        trigger:
+          type: string
+        emotion:
+          type: string
+        distortion:
+          type: string
+        reframe:
+          type: string
+        character:
+          type: string
+        created_at:
+          type: string
+      required:
+        - id
+        - title
+        - summary
+        - trigger
+        - emotion
+        - reframe
+        - character
+        - created_at
+
+    AddMemoryRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        emotion:
+          type: string
+        trigger:
+          type: string
+        distortion:
+          type: string
+        reframe:
+          type: string
+        character:
+          type: string
+        memory_type:
+          type: string
+      required:
+        - title
+        - content
+        - emotion
+        - trigger
+
+    AddMemoryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        success:
+          type: boolean
+      required:
+        - id
+        - success
+
+    SearchMemoryRequest:
+      type: object
+      properties:
+        query:
+          type: string
+        category:
+          type: string
+        limit:
+          type: integer
+      required:
+        - query
+
+    MemorySearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryItem"
+        source:
+          type: string
+      required:
+        - query
+        - results
+        - source
+
+    AllMemoriesResponse:
+      type: object
+      properties:
+        memories:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryItem"
+        total:
+          type: integer
+      required:
+        - memories
+        - total
+
+    MemoryGraphNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+        emotion:
+          type: string
+        date:
+          type: string
+      required:
+        - id
+        - label
+        - type
+        - emotion
+        - date
+
+    MemoryGraphEdge:
+      type: object
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        relation:
+          type: string
+      required:
+        - from
+        - to
+        - relation
+
+    MemoryGraph:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryGraphNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemoryGraphEdge"
+      required:
+        - nodes
+        - edges
+
+    CharacterRouteRequest:
+      type: object
+      properties:
+        analysis:
+          type: object
+        memory_results:
+          type: array
+          items:
+            type: object
+        user_preference:
+          type: string
+      required:
+        - analysis
+
+    CharacterResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        message:
+          type: string
+        reason:
+          type: string
+      required:
+        - name
+        - role
+        - message
+        - reason
+
+    CharacterRouteResponse:
+      type: object
+      properties:
+        recommended_path:
+          type: array
+          items:
+            type: string
+        primary_character:
+          type: string
+        reason:
+          type: string
+        character_responses:
+          type: array
+          items:
+            $ref: "#/components/schemas/CharacterResponse"
+      required:
+        - recommended_path
+        - primary_character
+        - reason
+        - character_responses
+
+    ThoughtMonsterStartRequest:
+      type: object
+      properties:
+        message:
+          type: string
+        analysis_id:
+          type: string
+        emotion:
+          type: string
+        distortion:
+          type: string
+        absolutist_words:
+          type: array
+          items:
+            type: string
+        memory_results:
+          type: array
+          items:
+            type: object
+      required:
+        - message
+
+    ThoughtMonsterGame:
+      type: object
+      properties:
+        game_id:
+          type: string
+        monster_name:
+          type: string
+        trigger_words:
+          type: array
+          items:
+            type: string
+        distortion:
+          type: string
+        weakness:
+          type: string
+        guide:
+          type: string
+        cbt_question_1:
+          type: string
+        cbt_question_2:
+          type: string
+        cbt_question_3:
+          type: string
+        memory_proof:
+          type: object
+          nullable: true
+        recommended_next_action:
+          type: string
+        safe_reframe:
+          type: string
+      required:
+        - game_id
+        - monster_name
+        - trigger_words
+        - distortion
+        - weakness
+        - guide
+        - cbt_question_1
+        - cbt_question_2
+        - cbt_question_3
+        - recommended_next_action
+        - safe_reframe
+
+    ThoughtMonsterCompleteRequest:
+      type: object
+      properties:
+        game_id:
+          type: string
+        original_thought:
+          type: string
+        final_reframe:
+          type: string
+        distortion:
+          type: string
+        character:
+          type: string
+      required:
+        - game_id
+        - original_thought
+        - final_reframe
+
+    ThoughtMonsterResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        reward:
+          type: string
+        memory_id:
+          type: string
+        graph_updated:
+          type: boolean
+      required:
+        - success
+        - reward
+        - graph_updated
+
+    CameraAnalyzeRequest:
+      type: object
+      properties:
+        image_base64:
+          type: string
+        mode:
+          type: string
+      required:
+        - image_base64
+
+    WorkspaceObject:
+      type: object
+      properties:
+        label:
+          type: string
+        game_label:
+          type: string
+        category:
+          type: string
+        confidence:
+          type: string
+      required:
+        - label
+        - game_label
+        - category
+        - confidence
+
+    CameraAnalysisResult:
+      type: object
+      properties:
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceObject"
+        workspace_state:
+          type: string
+        suggested_mission:
+          type: string
+        focus_score:
+          type: integer
+        source:
+          type: string
+      required:
+        - objects
+        - workspace_state
+        - suggested_mission
+        - focus_score
+        - source
+
+    FocusBossCreateRequest:
+      type: object
+      properties:
+        goal:
+          type: string
+        linked_thought:
+          type: string
+        camera_objects:
+          type: array
+          items:
+            type: string
+        estimated_minutes:
+          type: integer
+      required:
+        - goal
+
+    FocusBossStep:
+      type: object
+      properties:
+        step:
+          type: integer
+        action:
+          type: string
+        duration_minutes:
+          type: integer
+      required:
+        - step
+        - action
+
+    FocusBossPlan:
+      type: object
+      properties:
+        boss_id:
+          type: string
+        boss_name:
+          type: string
+        main_task:
+          type: string
+        tiny_step:
+          type: string
+        estimated_time_minutes:
+          type: integer
+        battle_plan:
+          type: array
+          items:
+            $ref: "#/components/schemas/FocusBossStep"
+        character:
+          type: string
+        arlo_message:
+          type: string
+      required:
+        - boss_id
+        - boss_name
+        - main_task
+        - tiny_step
+        - estimated_time_minutes
+        - battle_plan
+        - character
+        - arlo_message
+
+    TinyWinRequest:
+      type: object
+      properties:
+        proof_type:
+          type: string
+        completed_action:
+          type: string
+        linked_thought:
+          type: string
+        counter_evidence:
+          type: string
+        character:
+          type: string
+      required:
+        - proof_type
+        - completed_action
+
+    TinyWinResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        artifact:
+          type: string
+        reward_message:
+          type: string
+        graph_updated:
+          type: boolean
+        memory_id:
+          type: string
+      required:
+        - id
+        - artifact
+        - reward_message
+        - graph_updated
+
+    WeeklyReportSession:
+      type: object
+      properties:
+        date:
+          type: string
+        emotion:
+          type: string
+        distortion:
+          type: string
+        character:
+          type: string
+        intervention:
+          type: string
+      required:
+        - date
+        - emotion
+        - distortion
+        - character
+        - intervention
+
+    WeeklyReport:
+      type: object
+      properties:
+        period:
+          type: string
+        total_sessions:
+          type: integer
+        dominant_emotion:
+          type: string
+        most_common_distortion:
+          type: string
+        most_effective_character:
+          type: string
+        tiny_wins_count:
+          type: integer
+        thought_battles_won:
+          type: integer
+        msi_average:
+          type: number
+        progress_summary:
+          type: string
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReportSession"
+        recommendations:
+          type: array
+          items:
+            type: string
+      required:
+        - period
+        - total_sessions
+        - dominant_emotion
+        - most_common_distortion
+        - most_effective_character
+        - tiny_wins_count
+        - thought_battles_won
+        - msi_average
+        - progress_summary
+        - sessions
+        - recommendations
+
+    SafetyCheckRequest:
+      type: object
+      properties:
+        message:
+          type: string
+        user_id:
+          type: string
+      required:
+        - message
+
+    SafetyCheckResponse:
+      type: object
+      properties:
+        safe:
+          type: boolean
+        risk_level:
+          type: string
+        route:
+          type: string
+        message:
+          type: string
+        resources:
+          type: array
+          items:
+            type: string
+      required:
+        - safe
+        - risk_level
+        - route
+        - message
+        - resources
+
+    VoiceTranscribeRequest:
+      type: object
+      properties:
+        audio_base64:
+          type: string
+        typed_fallback:
+          type: string
+      required: []
+
+    VoiceTranscribeResponse:
+      type: object
+      properties:
+        transcript:
+          type: string
+        source:
+          type: string
+        confidence:
+          type: string
+      required:
+        - transcript
+        - source
+        - confidence
+
+    VoiceRouteRequest:
+      type: object
+      properties:
+        transcript:
+          type: string
+      required:
+        - transcript
+
+    VoiceRouteResponse:
+      type: object
+      properties:
+        route:
+          type: string
+        action:
+          type: string
+        params:
+          type: object
+      required:
+        - route
+        - action
