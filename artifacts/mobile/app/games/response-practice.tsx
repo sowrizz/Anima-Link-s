@@ -61,7 +61,7 @@ export default function ResponsePracticeScreen() {
     if (!input.trim()) return;
     setGrading(true);
     try {
-      const res = await customFetch<any>('/games/cbt-arena/score', {
+      const res = await customFetch<any>('/api/games/cbt-arena/score', {
         method: 'POST',
         body: JSON.stringify({
           scenario: activeScenario.scenario,
@@ -80,7 +80,7 @@ export default function ResponsePracticeScreen() {
     if (!gradeResult || !input.trim()) return;
     setSaving(true);
     try {
-      const res = await customFetch<any>('/games/cbt-arena/complete', {
+      const res = await customFetch<any>('/api/games/cbt-arena/complete', {
         method: 'POST',
         body: JSON.stringify({
           game_id: gradeResult.game_id,
