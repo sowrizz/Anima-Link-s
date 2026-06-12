@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useRouteVoiceSpell, useTranscribeVoice } from '@workspace/api-client-react';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 
 type SpeechRecognitionLike = {
   continuous: boolean;
@@ -36,9 +38,78 @@ export default function VoiceRoomScreen() {
   const [transcript, setTranscript] = useState('');
   const [routeResult, setRouteResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingStatus, setRecordingStatus] = useState<string>('idle');
 
   const transcribeMutation = useTranscribeVoice();
   const routeMutation = useRouteVoiceSpell();
+
+  const startRecording = async () => {
+    try {
+      setError('');
+      setTranscript('');
+      setRouteResult(null);
+
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        setError('Microphone permission is required to record audio.');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingStatus('recording');
+    } catch (err) {
+      console.error('Failed to start recording', err);
+      setError('Failed to start recording. Please type your message instead.');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+    setIsRecording(false);
+    setRecordingStatus('loading');
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+
+      if (uri) {
+        const base64Data = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const transRes = await transcribeMutation.mutateAsync({
+          data: {
+            audio_base64: base64Data,
+            typed_fallback: fallbackText.trim() || undefined,
+          } as any,
+        });
+
+        setTranscript(transRes.transcript);
+
+        const rRes = await routeMutation.mutateAsync({
+          data: { transcript: transRes.transcript },
+        });
+        setRouteResult(rRes);
+      } else {
+        throw new Error('No audio URI found');
+      }
+    } catch (err) {
+      console.error('Failed to process recording', err);
+      setError('Failed to transcribe audio. You can type it below instead.');
+    } finally {
+      setRecordingStatus('idle');
+    }
+  };
 
   const speechSupported = useMemo(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
@@ -194,11 +265,17 @@ export default function VoiceRoomScreen() {
           </View>
           <Text style={styles.waveTitle}>Talk It Out</Text>
           <Text style={styles.waveSubtitle}>
-            {speechSupported ? 'Use browser speech recognition, then Gemini routes the transcript.' : 'Speech recognition is not available in this runtime. Type the same words here to route them with Gemini.'}
+            {Platform.OS === 'web' 
+              ? (speechSupported ? 'Use browser speech recognition, then Gemini routes the transcript.' : 'Speech recognition is not available in this browser. Type the same words here to route them with Gemini.')
+              : 'Speak through your microphone, and Gemini will transcribe and route it.'}
           </Text>
         </View>
 
-        <Text style={styles.instruction}>{speechSupported ? 'Tap the mic and speak' : 'Type what you want to say'}</Text>
+        <Text style={styles.instruction}>
+          {Platform.OS === 'web' 
+            ? (speechSupported ? 'Tap the mic and speak' : 'Type what you want to say') 
+            : 'Tap the mic to start/stop speaking'}
+        </Text>
         <TextInput
           style={styles.input}
           placeholder="Say or type: I need help focusing..."
@@ -208,8 +285,16 @@ export default function VoiceRoomScreen() {
           multiline
         />
 
-        <Pressable style={styles.recordBtn} onPress={toggleSpeechRecognition} disabled={busy || (!speechSupported && !fallbackText.trim())}>
-          {busy ? <ActivityIndicator color="#fff" /> : <Feather name={isRecording ? 'square' : speechSupported ? 'mic' : 'send'} size={30} color="#fff" />}
+        <Pressable 
+          style={styles.recordBtn} 
+          onPress={Platform.OS === 'web' ? toggleSpeechRecognition : (isRecording ? stopRecording : startRecording)} 
+          disabled={busy || recordingStatus === 'loading'}
+        >
+          {busy || recordingStatus === 'loading' ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Feather name={isRecording ? 'square' : 'mic'} size={30} color="#fff" />
+          )}
         </Pressable>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}

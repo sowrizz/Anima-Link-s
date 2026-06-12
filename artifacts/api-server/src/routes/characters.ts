@@ -111,18 +111,27 @@ router.post("/characters/route", async (req, res) => {
       reason: `${name} is recommended for ${distortion !== "none" ? "cognitive reframing" : "emotional support"}.`,
     }));
 
-    if (!isGeminiConfigured()) {
-      res.status(503).json({ error: "Gemini API is not configured. Set GEMINI_API_KEY on the API server." });
+    let llmResult = null;
+    if (isGeminiConfigured()) {
+      try {
+        llmResult = await routeCharactersLLM(analysis, user_preference);
+      } catch {
+        llmResult = null;
+      }
+    }
+
+    if (llmResult?.recommended_path?.length && llmResult.character_responses?.length) {
+      res.json(llmResult);
       return;
     }
 
-    const llmResult = await routeCharactersLLM(analysis, user_preference);
-    if (!llmResult?.recommended_path?.length || !llmResult.character_responses?.length) {
-      res.status(502).json({ error: "Gemini could not route companion characters." });
-      return;
-    }
-
-    res.json(llmResult);
+    // Graceful fallback to deterministic response
+    res.json({
+      recommended_path: recommendedPath,
+      primary_character: primaryCharacter,
+      reason,
+      character_responses: characterResponses,
+    });
   } catch (err) {
     req.log.error({ err }, "characters/route failed");
     res.status(500).json({ error: "Character routing failed" });

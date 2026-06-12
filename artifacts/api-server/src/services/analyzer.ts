@@ -1,5 +1,5 @@
 import { store } from "./store";
-import { analyzeMessageLLM } from "./llm";
+import { analyzeMessageLLM, isGeminiConfigured } from "./llm";
 
 const ABSOLUTIST_WORDS = [
   "never",
@@ -154,14 +154,12 @@ export async function performAnalysis(
   const intent = determineIntent(absolutistWords, distortion);
 
   let llmResult = null;
-  try {
-    llmResult = await analyzeMessageLLM(message);
-  } catch {
-    llmResult = null;
-  }
-
-  if (!llmResult) {
-    throw new Error("Gemini analysis failed");
+  if (isGeminiConfigured()) {
+    try {
+      llmResult = await analyzeMessageLLM(message);
+    } catch {
+      llmResult = null;
+    }
   }
 
   const emotion = llmResult?.emotion ?? (msiScore >= 70 ? "high_stress" : msiScore >= 50 ? "mild_anxiety" : "calm");

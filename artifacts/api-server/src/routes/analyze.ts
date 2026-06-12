@@ -17,10 +17,7 @@ router.post("/analyze-message", async (req, res) => {
       return;
     }
 
-    if (!isGeminiConfigured()) {
-      res.status(503).json({ error: "Gemini API is not configured. Set GEMINI_API_KEY on the API server." });
-      return;
-    }
+
 
     const result = await performAnalysis(message, user_id, session_id);
     res.json(result);

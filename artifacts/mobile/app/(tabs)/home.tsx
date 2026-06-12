@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { useColors } from '@/hooks/useColors';
 import { useAppContext } from '@/app/context/AppContext';
 import { useHealthCheck, useGetAllMemories } from '@workspace/api-client-react';
 import { useRouter } from 'expo-router';
+import { MoodOrb } from '@/components/MoodOrb';
 
 const quickActions = [
   { label: 'Chat', icon: 'message-circle', href: '/(tabs)/chat', tint: 'primary' },
@@ -22,7 +23,26 @@ export default function HomeScreen() {
   const { data: health, isLoading: healthLoading } = useHealthCheck();
   const { data: memories } = useGetAllMemories();
   const latestMemory = memories?.memories?.[0];
-  const isOnline = health?.status === 'ok';
+  const lastEmotion = latestMemory?.emotion ?? 'calm';
+  const isOnline = !!health && health.status === 'ok';
+  const orbColor = useMemo(() => {
+    switch (lastEmotion) {
+      case 'calm':
+        return colors.sage || '#8FCE9F';
+      case 'stress':
+      case 'high_stress':
+      case 'overwhelm':
+        return '#E25B5B'; // coral red
+      case 'focus':
+        return colors.dustyBlue || '#8FCEBF';
+      case 'low_energy':
+        return colors.lavender || '#B19FFB';
+      case 'recovery':
+        return colors.peach || '#FCA385';
+      default:
+        return colors.primary;
+    }
+  }, [lastEmotion, colors]);
 
   return (
     <ScrollView
@@ -38,15 +58,15 @@ export default function HomeScreen() {
       <View style={[styles.stateCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.stateCopy}>
           <Text style={[styles.kicker, { color: colors.primary }]}>Your Anima State</Text>
-          <Text style={[styles.stateTitle, { color: colors.foreground }]}>Elevated Focus Friction</Text>
+          <Text style={[styles.stateTitle, { color: colors.foreground }]}>
+            {lastEmotion === 'high_stress' || lastEmotion === 'overwhelm' ? 'Elevated Stress Loop' : 'Balanced State'}
+          </Text>
           <Text style={[styles.stateBody, { color: colors.mutedForeground }]}>
-            Companion: {currentCharacter}. Daily state: elevated stress pattern with one small reset suggested.
+            Companion: {currentCharacter}. Daily state: {lastEmotion === 'high_stress' || lastEmotion === 'overwhelm' ? 'elevated stress pattern with one small reset suggested.' : 'centered and steady. Keep up the good work.'}
           </Text>
         </View>
-        <View style={[styles.weatherPanel, { backgroundColor: colors.lavender + '25' }]}>
-          <Feather name="cloud-lightning" size={28} color={colors.primary} />
-          <View style={[styles.weatherLine, { backgroundColor: colors.dustyBlue }]} />
-          <View style={[styles.weatherLineShort, { backgroundColor: colors.sage }]} />
+        <View style={[styles.weatherPanel, { backgroundColor: 'transparent', width: 72, height: 72, alignItems: 'center', justifyContent: 'center' }]}>
+          <MoodOrb size={64} color={orbColor} pulsing={true} />
         </View>
       </View>
 
