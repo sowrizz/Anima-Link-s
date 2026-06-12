@@ -157,7 +157,11 @@ export async function performAnalysis(
   try {
     llmResult = await analyzeMessageLLM(message);
   } catch {
-    // fallback to deterministic
+    llmResult = null;
+  }
+
+  if (!llmResult) {
+    throw new Error("Gemini analysis failed");
   }
 
   const emotion = llmResult?.emotion ?? (msiScore >= 70 ? "high_stress" : msiScore >= 50 ? "mild_anxiety" : "calm");

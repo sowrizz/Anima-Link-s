@@ -1,9 +1,10 @@
 import { Router, type IRouter } from "express";
+import { isGeminiConfigured } from "../services/llm";
 
 const router: IRouter = Router();
 
 router.get("/healthz", (_req, res) => {
-  const llmConfigured = !!process.env["OPENAI_API_KEY"];
+  const llmConfigured = isGeminiConfigured();
 
   res.json({
     status: "ok",

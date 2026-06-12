@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
 import { useAppContext } from '@/app/context/AppContext';
-import { useAnalyzeMessage, useSafetyCheck, MessageAnalysis } from '@workspace/api-client-react';
+import { useAnalyzeMessage, useRouteCharacter, useSafetyCheck, MessageAnalysis } from '@workspace/api-client-react';
 import { AnalysisCard } from '@/components/AnalysisCard';
 import { useRouter } from 'expo-router';
 
@@ -28,6 +28,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const analyzeMutation = useAnalyzeMessage();
   const safetyMutation = useSafetyCheck();
+  const routeCharacterMutation = useRouteCharacter();
 
   const handleSend = async (overrideText?: string) => {
     const userText = (overrideText ?? input).trim();
@@ -49,7 +50,20 @@ export default function ChatScreen() {
       const analysis = await analyzeMutation.mutateAsync({ data: { message: userText } });
       setLastAnalysis(analysis);
       setMessages((prev) => prev.map((m) => (m.id === newMsgId ? { ...m, analysis } : m)));
-      setMessages((prev) => [{ id: `${Date.now()}-reply`, text: analysis.safe_response, isUser: false }, ...prev]);
+      let reply = analysis.safe_response;
+      try {
+        const characterRoute = await routeCharacterMutation.mutateAsync({
+          data: {
+            analysis,
+            memory_results: analysis.memory_results,
+            user_preference: supportStyle,
+          } as any,
+        });
+        reply = characterRoute.character_responses?.[0]?.message ?? analysis.safe_response;
+      } catch {
+        reply = analysis.safe_response;
+      }
+      setMessages((prev) => [{ id: `${Date.now()}-reply`, text: reply, isUser: false }, ...prev]);
     } catch {
       setMessages((prev) => [
         { id: `${Date.now()}-error`, text: "I cannot reach the analysis service right now. You can still use reset, focus, or memory from the action buttons.", isUser: false },
@@ -119,7 +133,7 @@ export default function ChatScreen() {
     );
   };
 
-  const busy = analyzeMutation.isPending || safetyMutation.isPending;
+  const busy = analyzeMutation.isPending || safetyMutation.isPending || routeCharacterMutation.isPending;
 
   return (
     <KeyboardAvoidingView

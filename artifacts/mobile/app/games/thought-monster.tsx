@@ -17,6 +17,7 @@ export default function ThoughtMonsterScreen() {
   const analysisId = Array.isArray(params.analysisId) ? params.analysisId[0] : params.analysisId;
 
   const [gameState, setGameState] = useState<any>(null);
+  const [thoughtText, setThoughtText] = useState(String(initialMessage));
   const [round, setRound] = useState(0);
   const [hp, setHp] = useState(100);
   const [input, setInput] = useState('');
@@ -27,8 +28,9 @@ export default function ThoughtMonsterScreen() {
   const completeMutation = useCompleteThoughtMonster();
 
   useEffect(() => {
+    if (!String(initialMessage).trim()) return;
     startMutation.mutate(
-      { data: { message: initialMessage, analysis_id: analysisId } },
+      { data: { message: String(initialMessage), analysis_id: analysisId } },
       {
         onSuccess: (data: any) => {
           setGameState(data);
@@ -36,6 +38,18 @@ export default function ThoughtMonsterScreen() {
       }
     );
   }, []);
+
+  const handleStart = () => {
+    if (!thoughtText.trim()) return;
+    startMutation.mutate(
+      { data: { message: thoughtText.trim(), analysis_id: analysisId } },
+      {
+        onSuccess: (data: any) => {
+          setGameState(data);
+        }
+      }
+    );
+  };
 
   const handleNext = () => {
     if (!input.trim() && round < 3) return;
@@ -60,7 +74,7 @@ export default function ThoughtMonsterScreen() {
       const res = await completeMutation.mutateAsync({
         data: {
           game_id: gameState.game_id,
-          original_thought: initialMessage,
+          original_thought: thoughtText,
           final_reframe: input || gameState.safe_reframe,
           distortion: gameState.distortion
         }
@@ -71,6 +85,47 @@ export default function ThoughtMonsterScreen() {
       console.error(e);
     }
   };
+
+  if (!gameState && !String(initialMessage).trim()) {
+    return (
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior="padding">
+        <ScrollView contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24, paddingHorizontal: 24 }}>
+          <View style={styles.header}>
+            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+              <Feather name="x" size={24} color={colors.foreground} />
+            </Pressable>
+            <Text style={[styles.title, { color: colors.foreground }]}>Thought Challenge</Text>
+            <View style={styles.placeholder} />
+          </View>
+          <View style={styles.questionBox}>
+            <Text style={[styles.questionText, { color: colors.foreground }]}>What stressful thought should Gemini help you challenge?</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: colors.border }]}
+              placeholder="e.g. I will never finish this."
+              placeholderTextColor={colors.mutedForeground}
+              value={thoughtText}
+              onChangeText={setThoughtText}
+              multiline
+            />
+            {startMutation.isError ? (
+              <Text style={[styles.subtitle, { color: colors.destructive }]}>Could not create the AI challenge. Check Gemini configuration and try again.</Text>
+            ) : null}
+            <Pressable
+              style={[styles.btn, { backgroundColor: thoughtText.trim() ? colors.primary : colors.muted }]}
+              onPress={handleStart}
+              disabled={!thoughtText.trim() || startMutation.isPending}
+            >
+              {startMutation.isPending ? (
+                <ActivityIndicator color={colors.primaryForeground} />
+              ) : (
+                <Text style={[styles.btnText, { color: thoughtText.trim() ? colors.primaryForeground : colors.mutedForeground }]}>Create AI challenge</Text>
+              )}
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   if (startMutation.isPending) {
     return (

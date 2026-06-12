@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import { isGeminiConfigured, routeCharactersLLM } from "../services/llm";
 
 const router: IRouter = Router();
 
@@ -52,7 +53,7 @@ function getCharacterMessage(name: string): string {
   return msgs[Math.floor(Math.random() * msgs.length)];
 }
 
-router.post("/characters/route", (req, res) => {
+router.post("/characters/route", async (req, res) => {
   try {
     const { analysis, user_preference } = req.body as {
       analysis: {
@@ -110,12 +111,18 @@ router.post("/characters/route", (req, res) => {
       reason: `${name} is recommended for ${distortion !== "none" ? "cognitive reframing" : "emotional support"}.`,
     }));
 
-    res.json({
-      recommended_path: recommendedPath,
-      primary_character: primaryCharacter,
-      reason,
-      character_responses: characterResponses,
-    });
+    if (!isGeminiConfigured()) {
+      res.status(503).json({ error: "Gemini API is not configured. Set GEMINI_API_KEY on the API server." });
+      return;
+    }
+
+    const llmResult = await routeCharactersLLM(analysis, user_preference);
+    if (!llmResult?.recommended_path?.length || !llmResult.character_responses?.length) {
+      res.status(502).json({ error: "Gemini could not route companion characters." });
+      return;
+    }
+
+    res.json(llmResult);
   } catch (err) {
     req.log.error({ err }, "characters/route failed");
     res.status(500).json({ error: "Character routing failed" });

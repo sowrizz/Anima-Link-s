@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { performAnalysis } from "../services/analyzer";
+import { isGeminiConfigured } from "../services/llm";
 
 const router: IRouter = Router();
 
@@ -13,6 +14,11 @@ router.post("/analyze-message", async (req, res) => {
 
     if (!message || typeof message !== "string") {
       res.status(400).json({ error: "message is required" });
+      return;
+    }
+
+    if (!isGeminiConfigured()) {
+      res.status(503).json({ error: "Gemini API is not configured. Set GEMINI_API_KEY on the API server." });
       return;
     }
 

@@ -1,179 +1,239 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, TextInput, ActivityIndicator } from 'react-native';
+import React, { useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Platform, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useTranscribeVoice, useRouteVoiceSpell } from '@workspace/api-client-react';
+import { useRouteVoiceSpell, useTranscribeVoice } from '@workspace/api-client-react';
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string }; isFinal?: boolean }> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  }
+}
 
 export default function VoiceRoomScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const spokenTextRef = useRef('');
+
   const [isRecording, setIsRecording] = useState(false);
   const [fallbackText, setFallbackText] = useState('');
   const [transcript, setTranscript] = useState('');
   const [routeResult, setRouteResult] = useState<any>(null);
+  const [error, setError] = useState('');
 
   const transcribeMutation = useTranscribeVoice();
   const routeMutation = useRouteVoiceSpell();
 
-  const handleToggleRecord = async () => {
-    if (Platform.OS === 'web') {
-      if (!fallbackText.trim()) return;
-      handleProcessVoice(undefined, fallbackText.trim());
-    } else {
-      // In a real app we'd use expo-av here
-      // Mocking for now to avoid device-specific issues
-      if (isRecording) {
-        setIsRecording(false);
-        handleProcessVoice(undefined, "I'm just really stressed about the exam tomorrow.");
-      } else {
-        setIsRecording(true);
-      }
+  const speechSupported = useMemo(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
+  }, []);
+
+  const processTranscript = async (text: string) => {
+    if (!text.trim()) return;
+    setError('');
+    try {
+      const transRes = await transcribeMutation.mutateAsync({ data: { typed_fallback: text.trim() } });
+      setTranscript(transRes.transcript);
+      const rRes = await routeMutation.mutateAsync({ data: { transcript: transRes.transcript } });
+      setRouteResult(rRes);
+    } catch {
+      setError('Could not route this transcript. Check Gemini configuration and try again.');
     }
   };
 
-  const handleProcessVoice = async (base64?: string, typed?: string) => {
-    try {
-      const transRes = await transcribeMutation.mutateAsync({
-        data: { audio_base64: base64, typed_fallback: typed }
-      });
-      setTranscript(transRes.transcript);
-
-      const rRes = await routeMutation.mutateAsync({
-        data: { transcript: transRes.transcript }
-      });
-      setRouteResult(rRes);
-    } catch (e) {
-      console.error(e);
+  const toggleSpeechRecognition = () => {
+    if (!speechSupported) {
+      processTranscript(fallbackText);
+      return;
     }
+
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return;
+
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      const text = Array.from(event.results)
+        .map((result) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim();
+      spokenTextRef.current = text;
+      setFallbackText(text);
+    };
+    recognition.onerror = () => {
+      setIsRecording(false);
+      setError('Speech recognition could not hear that clearly. You can type it below.');
+    };
+    recognition.onend = () => {
+      setIsRecording(false);
+      const finalText = spokenTextRef.current.trim();
+      if (finalText) processTranscript(finalText);
+    };
+
+    recognitionRef.current = recognition;
+    setTranscript('');
+    setRouteResult(null);
+    setError('');
+    spokenTextRef.current = '';
+    setIsRecording(true);
+    recognition.start();
   };
 
   const handleExecuteAction = () => {
     if (!routeResult) return;
-    if (routeResult.route === 'chat') {
-      router.replace('/(tabs)/chat');
-    } else if (routeResult.route === 'game') {
-      if (routeResult.action === 'start_thought_monster') {
-        router.replace('/games/thought-monster');
-      } else {
-        router.replace('/(tabs)/missions');
-      }
+    const params = routeResult.params ?? {};
+    switch (routeResult.route) {
+      case 'thought_monster':
+        router.replace({ pathname: '/games/thought-monster', params: { message: params.message ?? params.transcript ?? transcript } });
+        break;
+      case 'focus_boss':
+        router.replace('/games/focus-boss');
+        break;
+      case 'camera_mission':
+        router.replace('/games/camera-mission');
+        break;
+      case 'memory':
+        router.replace('/(tabs)/memory');
+        break;
+      case 'support_modes':
+        router.replace('/support-modes');
+        break;
+      case 'report':
+        router.replace('/report');
+        break;
+      case 'safety':
+        router.replace('/(tabs)/safety');
+        break;
+      case 'tiny_win':
+        router.replace('/games/tiny-win');
+        break;
+      default:
+        router.replace('/(tabs)/chat');
     }
   };
 
+  const busy = transcribeMutation.isPending || routeMutation.isPending;
+
+  const styles = StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: insets.top + 12, paddingHorizontal: 24, marginBottom: 12 },
+    backBtn: { width: 40, height: 40, justifyContent: 'center' },
+    title: { fontSize: 24, fontFamily: 'Inter_700Bold', color: colors.foreground },
+    placeholder: { width: 40 },
+    content: { padding: 24, paddingBottom: insets.bottom + 48, gap: 24 },
+    waveCard: { width: '100%', borderRadius: 8, borderWidth: 1, padding: 24, alignItems: 'center', backgroundColor: colors.card, borderColor: colors.border },
+    waveRows: { height: 128, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+    waveBar: { width: 18, borderRadius: 9 },
+    waveTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 8, color: colors.foreground },
+    waveSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, textAlign: 'center', color: colors.mutedForeground },
+    instruction: { fontSize: 16, fontFamily: 'Inter_500Medium', textAlign: 'center', color: colors.mutedForeground },
+    input: { width: '100%', minHeight: 110, borderRadius: 8, borderWidth: 1, padding: 16, fontSize: 16, fontFamily: 'Inter_400Regular', backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground, textAlignVertical: 'top' },
+    recordBtn: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', backgroundColor: isRecording ? colors.destructive : colors.primary },
+    transcriptCard: { padding: 20, borderRadius: 8, borderWidth: 1, backgroundColor: colors.card, borderColor: colors.border, gap: 8 },
+    transcriptLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: colors.mutedForeground },
+    transcriptText: { fontSize: 18, fontFamily: 'Inter_400Regular', lineHeight: 28, fontStyle: 'italic', color: colors.foreground },
+    actionCard: { padding: 24, borderRadius: 8, borderWidth: 1, backgroundColor: colors.primary + '11', borderColor: colors.primary + '33' },
+    actionTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginBottom: 8, color: colors.foreground },
+    actionDesc: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 22, marginBottom: 24, color: colors.mutedForeground },
+    executeBtn: { height: 50, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary },
+    executeBtnText: { fontSize: 16, fontFamily: 'Inter_600SemiBold', color: colors.primaryForeground },
+    errorText: { fontSize: 14, fontFamily: 'Inter_500Medium', color: colors.destructive, textAlign: 'center' },
+  });
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { paddingHorizontal: 24 }]}>
+    <View style={styles.container}>
+      <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="x" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>Voice Room</Text>
+        <Text style={styles.title}>Voice Room</Text>
         <View style={styles.placeholder} />
       </View>
 
-      <View style={styles.content}>
-        {!transcript ? (
-          <View style={styles.recordArea}>
-            <View style={[styles.waveCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.waveRows}>
-                {[38, 72, 112, 72, 38].map((height, index) => (
-                  <View
-                    key={index}
-                    style={[
-                      styles.waveBar,
-                      {
-                        height,
-                        backgroundColor: isRecording ? colors.destructive : colors.primary,
-                        opacity: isRecording ? 0.9 - index * 0.08 : 0.34 + index * 0.08,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-              <Text style={[styles.waveTitle, { color: colors.foreground }]}>Talk It Out</Text>
-              <Text style={[styles.waveSubtitle, { color: colors.mutedForeground }]}>Transcribe, analyze, and route to the right support flow.</Text>
-            </View>
-            
-            <Text style={[styles.instruction, { color: colors.mutedForeground, marginTop: 48 }]}>
-              {Platform.OS === 'web' ? 'Type what you want to say' : 'Tap to start speaking'}
-            </Text>
-
-            {Platform.OS === 'web' && (
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
-                placeholder="Type here..."
-                placeholderTextColor={colors.mutedForeground}
-                value={fallbackText}
-                onChangeText={setFallbackText}
-                multiline
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
+        <View style={styles.waveCard}>
+          <View style={styles.waveRows}>
+            {[38, 72, 112, 72, 38].map((height, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.waveBar,
+                  {
+                    height,
+                    backgroundColor: isRecording ? colors.destructive : colors.primary,
+                    opacity: isRecording ? 0.9 - index * 0.08 : 0.34 + index * 0.08,
+                  },
+                ]}
               />
-            )}
+            ))}
+          </View>
+          <Text style={styles.waveTitle}>Talk It Out</Text>
+          <Text style={styles.waveSubtitle}>
+            {speechSupported ? 'Use browser speech recognition, then Gemini routes the transcript.' : 'Speech recognition is not available in this runtime. Type the same words here to route them with Gemini.'}
+          </Text>
+        </View>
 
-            <Pressable 
-              style={[styles.recordBtn, { backgroundColor: isRecording ? colors.destructive : colors.primary }]}
-              onPress={handleToggleRecord}
-              disabled={transcribeMutation.isPending || routeMutation.isPending}
-            >
-              {transcribeMutation.isPending || routeMutation.isPending ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Feather name={isRecording ? "square" : "mic"} size={32} color="#fff" />
-              )}
+        <Text style={styles.instruction}>{speechSupported ? 'Tap the mic and speak' : 'Type what you want to say'}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Say or type: I need help focusing..."
+          placeholderTextColor={colors.mutedForeground}
+          value={fallbackText}
+          onChangeText={setFallbackText}
+          multiline
+        />
+
+        <Pressable style={styles.recordBtn} onPress={toggleSpeechRecognition} disabled={busy || (!speechSupported && !fallbackText.trim())}>
+          {busy ? <ActivityIndicator color="#fff" /> : <Feather name={isRecording ? 'square' : speechSupported ? 'mic' : 'send'} size={30} color="#fff" />}
+        </Pressable>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        {transcript ? (
+          <View style={styles.transcriptCard}>
+            <Text style={styles.transcriptLabel}>Transcript</Text>
+            <Text style={styles.transcriptText}>"{transcript}"</Text>
+          </View>
+        ) : null}
+
+        {routeResult ? (
+          <View style={styles.actionCard}>
+            <Feather name="compass" size={24} color={colors.primary} style={{ marginBottom: 12 }} />
+            <Text style={styles.actionTitle}>Recommended Action</Text>
+            <Text style={styles.actionDesc}>
+              Recommended route: <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold' }}>{routeResult.action}</Text>
+            </Text>
+            <Pressable style={styles.executeBtn} onPress={handleExecuteAction}>
+              <Text style={styles.executeBtnText}>Continue</Text>
             </Pressable>
           </View>
-        ) : (
-          <View style={styles.resultArea}>
-            <View style={[styles.transcriptCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.transcriptLabel, { color: colors.mutedForeground }]}>You said:</Text>
-              <Text style={[styles.transcriptText, { color: colors.foreground }]}>"{transcript}"</Text>
-            </View>
-
-            {routeResult && (
-              <View style={[styles.actionCard, { backgroundColor: colors.primary + '11', borderColor: colors.primary + '33' }]}>
-                <Feather name="compass" size={24} color={colors.primary} style={{ marginBottom: 12 }} />
-                <Text style={[styles.actionTitle, { color: colors.foreground }]}>Recommended Action</Text>
-                <Text style={[styles.actionDesc, { color: colors.mutedForeground }]}>
-                  Recommended route: <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold' }}>{routeResult.action}</Text>
-                </Text>
-                
-                <Pressable style={[styles.executeBtn, { backgroundColor: colors.primary }]} onPress={handleExecuteAction}>
-                  <Text style={[styles.executeBtnText, { color: colors.primaryForeground }]}>Continue</Text>
-                </Pressable>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  title: { fontSize: 24, fontFamily: 'Inter_700Bold' },
-  placeholder: { width: 40 },
-  content: { flex: 1, paddingHorizontal: 24 },
-  recordArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
-  waveCard: { width: '100%', borderRadius: 8, borderWidth: 1, padding: 24, alignItems: 'center' },
-  waveRows: { height: 128, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
-  waveBar: { width: 18, borderRadius: 9 },
-  waveTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 8 },
-  waveSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, textAlign: 'center' },
-  instruction: { fontSize: 16, fontFamily: 'Inter_500Medium', marginBottom: 24, textAlign: 'center' },
-  input: { width: '100%', minHeight: 100, borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 24, fontSize: 16, fontFamily: 'Inter_400Regular' },
-  recordBtn: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },
-  resultArea: { flex: 1, paddingTop: 24 },
-  transcriptCard: { padding: 20, borderRadius: 16, borderWidth: 1, marginBottom: 24 },
-  transcriptLabel: { fontSize: 14, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
-  transcriptText: { fontSize: 18, fontFamily: 'Inter_400Regular', lineHeight: 28, fontStyle: 'italic' },
-  actionCard: { padding: 24, borderRadius: 16, borderWidth: 1 },
-  actionTitle: { fontSize: 18, fontFamily: 'Inter_600SemiBold', marginBottom: 8 },
-  actionDesc: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 22, marginBottom: 24 },
-  executeBtn: { height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
-  executeBtnText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-});
