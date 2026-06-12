@@ -16,6 +16,7 @@ interface Message {
 }
 
 const MODES = ['Vent', 'Calm Me', 'Challenge Me', 'Plan With Me', 'Hype Me'];
+const TAB_BAR_CLEARANCE = 88;
 
 export default function ChatScreen() {
   const router = useRouter();
@@ -170,7 +171,17 @@ export default function ChatScreen() {
         keyboardDismissMode="interactive"
       />
 
-      <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            backgroundColor: colors.card,
+            borderTopColor: colors.border,
+            marginBottom: TAB_BAR_CLEARANCE,
+            paddingBottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
         <Pressable style={styles.iconBtn} onPress={() => router.push('/voice-room')}>
           <Feather name="mic" size={22} color={colors.mutedForeground} />
         </Pressable>
