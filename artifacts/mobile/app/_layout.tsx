@@ -10,7 +10,6 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { setBaseUrl } from "@workspace/api-client-react";
 
@@ -20,7 +19,12 @@ import { AppProvider } from "@/app/context/AppContext";
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-setBaseUrl(`https://${process.env.EXPO_PUBLIC_DOMAIN}`);
+setBaseUrl(
+  process.env.EXPO_PUBLIC_API_URL ??
+    (process.env.EXPO_PUBLIC_DOMAIN
+      ? `https://${process.env.EXPO_PUBLIC_DOMAIN}`
+      : null),
+);
 
 const queryClient = new QueryClient();
 
@@ -65,11 +69,9 @@ export default function RootLayout() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView>
-            <KeyboardProvider>
-              <AppProvider>
-                <RootLayoutNav />
-              </AppProvider>
-            </KeyboardProvider>
+            <AppProvider>
+              <RootLayoutNav />
+            </AppProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>
       </ErrorBoundary>

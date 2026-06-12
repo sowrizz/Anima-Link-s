@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Keyboard, ActivityIndicator } from 'react-native';
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Keyboard, ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
