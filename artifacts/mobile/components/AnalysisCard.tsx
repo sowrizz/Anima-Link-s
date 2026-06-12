@@ -6,129 +6,52 @@ import { MessageAnalysis } from '@workspace/api-client-react';
 
 export function AnalysisCard({ analysis }: { analysis: MessageAnalysis }) {
   const colors = useColors();
-
-  const getScoreColor = (score: number) => {
-    if (score < 40) return colors.destructive;
-    if (score < 70) return colors.accent;
-    return colors.sage;
-  };
+  const words = analysis.absolutist_words?.length ? analysis.absolutist_words.join(', ') : 'none detected';
+  const path = analysis.recommended_path?.length ? analysis.recommended_path.join(' -> ') : 'Reflect -> Act';
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.header}>
-        <View style={styles.badgeRow}>
-          <View style={[styles.badge, { backgroundColor: colors.muted }]}>
-            <Feather name="activity" size={14} color={colors.primary} />
-            <Text style={[styles.badgeText, { color: colors.foreground }]}>{analysis.emotion}</Text>
-          </View>
-          {analysis.distortion ? (
-            <View style={[styles.badge, { backgroundColor: colors.accent + '22' }]}>
-              <Feather name="alert-circle" size={14} color={colors.accent} />
-              <Text style={[styles.badgeText, { color: colors.accent }]}>{analysis.distortion}</Text>
-            </View>
-          ) : null}
-        </View>
-        <View style={[styles.scoreCircle, { borderColor: getScoreColor(analysis.msi_score) }]}>
-          <Text style={[styles.scoreText, { color: getScoreColor(analysis.msi_score) }]}>
-            {analysis.msi_score}
-          </Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Insight</Text>
+        <View style={[styles.scorePill, { backgroundColor: colors.primary + '18' }]}>
+          <Text style={[styles.scoreText, { color: colors.primary }]}>MSI {analysis.msi_score}</Text>
         </View>
       </View>
 
-      <Text style={[styles.msiLabel, { color: colors.mutedForeground }]}>{analysis.msi_label}</Text>
+      <View style={styles.rows}>
+        <InsightRow icon="activity" label="Mood" value={analysis.emotion || analysis.msi_label} color={colors.primary} />
+        <InsightRow icon="type" label="Language pattern" value={words} color={colors.accent} />
+        <InsightRow icon="refresh-cw" label="Thought pattern" value={analysis.distortion || 'no distortion flagged'} color={colors.sage} />
+        <InsightRow icon="map-pin" label="Trigger" value={analysis.trigger || 'current context'} color={colors.dustyBlue} />
+        <InsightRow icon="git-branch" label="Suggested path" value={path} color={colors.primary} />
+      </View>
+    </View>
+  );
+}
 
-      {analysis.recommended_path && analysis.recommended_path.length > 0 && (
-        <View style={styles.pathContainer}>
-          <Text style={[styles.pathTitle, { color: colors.foreground }]}>Recommended Path</Text>
-          <View style={styles.pathList}>
-            {analysis.recommended_path.map((step, index) => (
-              <View key={index} style={styles.pathStep}>
-                <View style={[styles.stepDot, { backgroundColor: colors.primary }]} />
-                <Text style={[styles.stepText, { color: colors.mutedForeground }]}>{step}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
+function InsightRow({ icon, label, value, color }: { icon: keyof typeof Feather.glyphMap; label: string; value: string; color: string }) {
+  const colors = useColors();
+
+  return (
+    <View style={styles.row}>
+      <View style={[styles.rowIcon, { backgroundColor: color + '18' }]}>
+        <Feather name={icon} size={13} color={color} />
+      </View>
+      <Text style={[styles.label, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text style={[styles.value, { color: colors.foreground }]} numberOfLines={2}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    marginVertical: 8,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    flex: 1,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 6,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontFamily: 'Inter_500Medium',
-  },
-  scoreCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 12,
-  },
-  scoreText: {
-    fontSize: 12,
-    fontFamily: 'Inter_700Bold',
-  },
-  msiLabel: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-    marginBottom: 12,
-  },
-  pathContainer: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#00000010',
-  },
-  pathTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter_600SemiBold',
-    marginBottom: 8,
-  },
-  pathList: {
-    gap: 6,
-  },
-  pathStep: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  stepText: {
-    fontSize: 13,
-    fontFamily: 'Inter_400Regular',
-  },
+  card: { borderRadius: 8, padding: 16, borderWidth: 1, marginVertical: 8 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  title: { fontSize: 17, fontFamily: 'Inter_700Bold' },
+  scorePill: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999 },
+  scoreText: { fontSize: 12, fontFamily: 'Inter_700Bold' },
+  rows: { gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  rowIcon: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  label: { width: 116, fontSize: 12, fontFamily: 'Inter_700Bold', textTransform: 'uppercase', lineHeight: 18 },
+  value: { flex: 1, fontSize: 13, fontFamily: 'Inter_500Medium', lineHeight: 18 },
 });

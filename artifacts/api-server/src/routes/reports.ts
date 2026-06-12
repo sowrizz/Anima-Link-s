@@ -3,7 +3,7 @@ import { store } from "../services/store";
 
 const router: IRouter = Router();
 
-router.get("/reports/weekly", (_req, res) => {
+router.get("/reports/weekly", (req, res) => {
   try {
     const analyses = store.analyses.getAll();
     const tinyWins = store.tinyWins.getAll();

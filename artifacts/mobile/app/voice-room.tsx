@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { MoodOrb } from '@/components/MoodOrb';
 import { useTranscribeVoice, useRouteVoiceSpell } from '@workspace/api-client-react';
 
 export default function VoiceRoomScreen() {
@@ -78,10 +77,28 @@ export default function VoiceRoomScreen() {
       <View style={styles.content}>
         {!transcript ? (
           <View style={styles.recordArea}>
-            <MoodOrb size={180} color={isRecording ? colors.destructive : colors.primary} pulsing={isRecording} />
+            <View style={[styles.waveCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.waveRows}>
+                {[38, 72, 112, 72, 38].map((height, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.waveBar,
+                      {
+                        height,
+                        backgroundColor: isRecording ? colors.destructive : colors.primary,
+                        opacity: isRecording ? 0.9 - index * 0.08 : 0.34 + index * 0.08,
+                      },
+                    ]}
+                  />
+                ))}
+              </View>
+              <Text style={[styles.waveTitle, { color: colors.foreground }]}>Talk It Out</Text>
+              <Text style={[styles.waveSubtitle, { color: colors.mutedForeground }]}>Transcribe, analyze, and route to the right support flow.</Text>
+            </View>
             
             <Text style={[styles.instruction, { color: colors.mutedForeground, marginTop: 48 }]}>
-              {Platform.OS === 'web' ? 'Type what you want to say (Web Fallback)' : 'Tap to start speaking'}
+              {Platform.OS === 'web' ? 'Type what you want to say' : 'Tap to start speaking'}
             </Text>
 
             {Platform.OS === 'web' && (
@@ -119,7 +136,7 @@ export default function VoiceRoomScreen() {
                 <Feather name="compass" size={24} color={colors.primary} style={{ marginBottom: 12 }} />
                 <Text style={[styles.actionTitle, { color: colors.foreground }]}>Recommended Action</Text>
                 <Text style={[styles.actionDesc, { color: colors.mutedForeground }]}>
-                  Based on your voice tone, we recommend: <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold' }}>{routeResult.action}</Text>
+                  Recommended route: <Text style={{ color: colors.primary, fontFamily: 'Inter_600SemiBold' }}>{routeResult.action}</Text>
                 </Text>
                 
                 <Pressable style={[styles.executeBtn, { backgroundColor: colors.primary }]} onPress={handleExecuteAction}>
@@ -142,6 +159,11 @@ const styles = StyleSheet.create({
   placeholder: { width: 40 },
   content: { flex: 1, paddingHorizontal: 24 },
   recordArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
+  waveCard: { width: '100%', borderRadius: 8, borderWidth: 1, padding: 24, alignItems: 'center' },
+  waveRows: { height: 128, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 20 },
+  waveBar: { width: 18, borderRadius: 9 },
+  waveTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', marginBottom: 8 },
+  waveSubtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, textAlign: 'center' },
   instruction: { fontSize: 16, fontFamily: 'Inter_500Medium', marginBottom: 24, textAlign: 'center' },
   input: { width: '100%', minHeight: 100, borderRadius: 16, borderWidth: 1, padding: 16, marginBottom: 24, fontSize: 16, fontFamily: 'Inter_400Regular' },
   recordBtn: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 8 },

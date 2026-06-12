@@ -46,7 +46,7 @@ export default function FocusBossScreen() {
     try {
       const res = await storeWinMutation.mutateAsync({
         data: {
-          proof_type: 'Focus Boss Defeated',
+          proof_type: 'Focus Session Completed',
           completed_action: bossPlan.main_task,
           character: bossPlan.character
         }
@@ -61,7 +61,7 @@ export default function FocusBossScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.background, padding: 24 }]}>
         <Feather name="award" size={64} color={colors.sage} style={{ marginBottom: 24 }} />
-        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Boss Defeated!</Text>
+        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Focus Session Complete</Text>
         <Text style={[styles.rewardText, { color: colors.sage, textAlign: 'center' }]}>{reward.reward_message}</Text>
         <Pressable 
           style={[styles.btn, { backgroundColor: colors.primary, marginTop: 32, width: '100%' }]}
@@ -83,12 +83,12 @@ export default function FocusBossScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="x" size={24} color={colors.foreground} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.foreground }]}>Focus Boss</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Focus Session</Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.inputArea}>
-          <Text style={[styles.label, { color: colors.foreground }]}>What's the big task you're avoiding?</Text>
+          <Text style={[styles.label, { color: colors.foreground }]}>What is the task you want to start?</Text>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]}
             placeholder="e.g. Write the quarterly report"
@@ -106,7 +106,7 @@ export default function FocusBossScreen() {
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
               <Text style={[styles.btnText, { color: goal.trim() ? colors.primaryForeground : colors.mutedForeground }]}>
-                Summon Boss
+                Create focus plan
               </Text>
             )}
           </Pressable>
@@ -123,17 +123,17 @@ export default function FocusBossScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="x" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>Battle</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Focus Session</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 100 }}>
         <View style={[styles.bossCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.bossName, { color: colors.foreground }]}>{bossPlan.boss_name}</Text>
+          <Text style={[styles.bossName, { color: colors.foreground }]}>Goal</Text>
           <Text style={[styles.bossTask, { color: colors.mutedForeground }]}>{bossPlan.main_task}</Text>
           
           <View style={styles.hpContainer}>
-            <Text style={[styles.hpText, { color: colors.foreground }]}>HP</Text>
+            <Text style={[styles.hpText, { color: colors.foreground }]}>Progress</Text>
             <View style={{ flex: 1 }}>
               <HPBar progress={progress} />
             </View>
@@ -145,7 +145,7 @@ export default function FocusBossScreen() {
           <Text style={[styles.messageText, { color: colors.primary }]}>"{bossPlan.arlo_message}"</Text>
         </View>
 
-        <Text style={[styles.listTitle, { color: colors.foreground }]}>Battle Plan</Text>
+        <Text style={[styles.listTitle, { color: colors.foreground }]}>Session checklist</Text>
         <View style={styles.checklist}>
           {bossPlan.battle_plan.map((step: any, index: number) => {
             const isChecked = checkedSteps.has(index);
@@ -175,7 +175,7 @@ export default function FocusBossScreen() {
             {storeWinMutation.isPending ? (
               <ActivityIndicator color={colors.sageForeground} />
             ) : (
-              <Text style={[styles.btnText, { color: colors.sageForeground }]}>Claim Victory</Text>
+              <Text style={[styles.btnText, { color: colors.sageForeground }]}>Store progress proof</Text>
             )}
           </Pressable>
         )}

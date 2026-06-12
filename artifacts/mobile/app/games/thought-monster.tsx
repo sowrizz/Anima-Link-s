@@ -30,7 +30,7 @@ export default function ThoughtMonsterScreen() {
     startMutation.mutate(
       { data: { message: initialMessage, analysis_id: analysisId } },
       {
-        onSuccess: (data) => {
+        onSuccess: (data: any) => {
           setGameState(data);
         }
       }
@@ -76,7 +76,7 @@ export default function ThoughtMonsterScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Summoning the Thought Monster...</Text>
+        <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Preparing the thought challenge...</Text>
       </View>
     );
   }
@@ -96,7 +96,7 @@ export default function ThoughtMonsterScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.background, padding: 24 }]}>
         <Feather name="award" size={64} color={colors.sage} style={{ marginBottom: 24 }} />
-        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Monster Defeated!</Text>
+        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Reframe Stored</Text>
         <Text style={[styles.rewardText, { color: colors.sage, textAlign: 'center' }]}>{reward.reward}</Text>
         <Pressable 
           style={[styles.btn, { backgroundColor: colors.primary, marginTop: 32, width: '100%' }]}
@@ -115,14 +115,14 @@ export default function ThoughtMonsterScreen() {
           <Pressable onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="x" size={24} color={colors.foreground} />
           </Pressable>
-          <Text style={[styles.title, { color: colors.foreground }]}>Battle</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Thought Challenge</Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={[styles.monsterCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.monsterHeader}>
             <View>
-              <Text style={[styles.monsterName, { color: colors.foreground }]}>{gameState.monster_name}</Text>
+              <Text style={[styles.monsterName, { color: colors.foreground }]}>Thought Pattern Detected</Text>
               <Text style={[styles.distortion, { color: colors.accent }]}>{gameState.distortion}</Text>
             </View>
             <View style={[styles.guideBadge, { backgroundColor: colors.primary + '22' }]}>
@@ -130,10 +130,10 @@ export default function ThoughtMonsterScreen() {
             </View>
           </View>
           
-          <Text style={[styles.weakness, { color: colors.mutedForeground }]}>Weakness: {gameState.weakness}</Text>
+          <Text style={[styles.weakness, { color: colors.mutedForeground }]}>Suggested next step: {gameState.weakness}</Text>
           
           <View style={styles.hpContainer}>
-            <Text style={[styles.hpText, { color: colors.foreground }]}>HP</Text>
+            <Text style={[styles.hpText, { color: colors.foreground }]}>Progress</Text>
             <View style={{ flex: 1 }}>
               <HPBar progress={hp} />
             </View>
@@ -147,14 +147,14 @@ export default function ThoughtMonsterScreen() {
               <Text style={[styles.questionText, { color: colors.foreground }]}>{gameState.cbt_question_1}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: colors.border }]}
-                placeholder="Your response..."
+                placeholder="Type your answer..."
                 placeholderTextColor={colors.mutedForeground}
                 value={input}
                 onChangeText={setInput}
                 multiline
               />
               <Pressable style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleNext}>
-                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Attack</Text>
+                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Continue</Text>
               </Pressable>
             </View>
           )}
@@ -164,14 +164,14 @@ export default function ThoughtMonsterScreen() {
               <Text style={[styles.questionText, { color: colors.foreground }]}>{gameState.cbt_question_2}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: colors.border }]}
-                placeholder="Your response..."
+                placeholder="Type your answer..."
                 placeholderTextColor={colors.mutedForeground}
                 value={input}
                 onChangeText={setInput}
                 multiline
               />
               <Pressable style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleNext}>
-                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Attack</Text>
+                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Continue</Text>
               </Pressable>
             </View>
           )}
@@ -181,27 +181,27 @@ export default function ThoughtMonsterScreen() {
               <Text style={[styles.questionText, { color: colors.foreground }]}>{gameState.cbt_question_3}</Text>
               {gameState.memory_proof ? (
                 <View style={[styles.proofCard, { backgroundColor: colors.sage + '22', borderColor: colors.sage }]}>
-                  <Text style={[styles.proofTitle, { color: colors.sage }]}>Proof Found!</Text>
+                  <Text style={[styles.proofTitle, { color: colors.sage }]}>Past proof found</Text>
                   <Text style={[styles.proofText, { color: colors.foreground }]}>{gameState.memory_proof.reframe}</Text>
                 </View>
               ) : null}
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: colors.border }]}
-                placeholder="Your response..."
+                placeholder="Type your answer..."
                 placeholderTextColor={colors.mutedForeground}
                 value={input}
                 onChangeText={setInput}
                 multiline
               />
               <Pressable style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleNext}>
-                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Critical Hit</Text>
+                <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Use past proof</Text>
               </Pressable>
             </View>
           )}
 
           {round === 3 && (
             <View style={styles.questionBox}>
-              <Text style={[styles.questionText, { color: colors.foreground }]}>Final Reframe</Text>
+              <Text style={[styles.questionText, { color: colors.foreground }]}>Final reframe</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground, marginBottom: 12 }]}>Edit this to make it yours:</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.card, color: colors.foreground, borderColor: colors.border }]}
@@ -217,7 +217,7 @@ export default function ThoughtMonsterScreen() {
                 {completeMutation.isPending ? (
                   <ActivityIndicator color={colors.sageForeground} />
                 ) : (
-                  <Text style={[styles.btnText, { color: colors.sageForeground }]}>Finish Battle</Text>
+                  <Text style={[styles.btnText, { color: colors.sageForeground }]}>Store reframe</Text>
                 )}
               </Pressable>
             </View>

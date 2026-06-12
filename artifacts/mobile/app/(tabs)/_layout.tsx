@@ -25,7 +25,7 @@ function NativeTabLayout() {
         <Label>Missions</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="memory">
-        <Icon sf={{ default: "database", selected: "database.fill" }} />
+        <Icon sf={{ default: "table", selected: "table.fill" }} />
         <Label>Memory</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="safety">
@@ -116,7 +116,7 @@ function ClassicTabLayout() {
           title: "Memory",
           tabBarIcon: ({ color }) =>
             isIOS ? (
-              <SymbolView name="database" tintColor={color} size={24} />
+              <SymbolView name="table.fill" tintColor={color} size={24} />
             ) : (
               <Feather name="database" size={22} color={color} />
             ),

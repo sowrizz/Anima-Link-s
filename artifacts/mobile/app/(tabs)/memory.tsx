@@ -36,13 +36,13 @@ export default function MemoryScreen() {
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Memory</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Memory Core</Text>
           <Pressable 
             style={[styles.mapBtn, { backgroundColor: colors.primary + '22' }]}
             onPress={() => router.push('/memory-map')}
           >
             <Feather name="git-merge" size={16} color={colors.primary} />
-            <Text style={[styles.mapBtnText, { color: colors.primary }]}>Graph</Text>
+            <Text style={[styles.mapBtnText, { color: colors.primary }]}>Map</Text>
           </Pressable>
         </View>
 
@@ -91,6 +91,20 @@ export default function MemoryScreen() {
             )}
           />
         </View>
+        <Pressable
+          style={[styles.graphPreview, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}
+          onPress={() => router.push('/memory-map')}
+        >
+          <View style={styles.graphLine}>
+            {['Trigger', 'Pattern', 'Reframe', 'Proof'].map((node, index) => (
+              <View key={node} style={styles.graphNodeWrap}>
+                <View style={[styles.graphDot, { backgroundColor: index === 3 ? colors.sage : colors.primary }]} />
+                <Text style={[styles.graphNodeText, { color: colors.foreground }]}>{node}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={[styles.graphHint, { color: colors.mutedForeground }]}>Exam stress {'->'} overgeneralization {'->'} Nova reframe {'->'} progress proof</Text>
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -162,6 +176,7 @@ const styles = StyleSheet.create({
   },
   chipsContainer: {
     marginHorizontal: -24,
+    marginBottom: 14,
   },
   chip: {
     paddingHorizontal: 16,
@@ -177,6 +192,35 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: 24,
     paddingTop: 12,
+  },
+  graphPreview: {
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 14,
+  },
+  graphLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  graphNodeWrap: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  graphDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  graphNodeText: {
+    fontSize: 11,
+    fontFamily: 'Inter_700Bold',
+  },
+  graphHint: {
+    fontSize: 12,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 17,
   },
   center: {
     flex: 1,

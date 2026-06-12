@@ -48,13 +48,13 @@ export default function TinyWinScreen() {
     return (
       <View style={[styles.center, { backgroundColor: colors.background, padding: 24 }]}>
         <Feather name="star" size={64} color={colors.sage} style={{ marginBottom: 24 }} />
-        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Tiny Win Recorded!</Text>
+        <Text style={[styles.title, { color: colors.foreground, textAlign: 'center' }]}>Progress Proof Stored</Text>
         <Text style={[styles.rewardText, { color: colors.sage, textAlign: 'center' }]}>{reward.reward_message}</Text>
         <Pressable 
           style={[styles.btn, { backgroundColor: colors.primary, marginTop: 32, width: '100%' }]}
           onPress={() => router.replace('/(tabs)/home')}
         >
-          <Text style={[styles.btnText, { color: colors.primaryForeground }]}>Awesome</Text>
+          <Text style={[styles.btnText, { color: colors.primaryForeground }]}>View home</Text>
         </Pressable>
       </View>
     );
@@ -66,13 +66,13 @@ export default function TinyWinScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="x" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.title, { color: colors.foreground }]}>Log a Tiny Win</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>Progress Proof</Text>
         <View style={styles.placeholder} />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 40 }}>
         <Text style={[styles.subtitle, { color: colors.mutedForeground, marginBottom: 24 }]}>
-          Every action counts. Build your proof database.
+          Every small action becomes evidence your future self can recall.
         </Text>
 
         <View style={styles.grid}>
@@ -111,7 +111,7 @@ export default function TinyWinScreen() {
             <ActivityIndicator color={colors.sageForeground} />
           ) : (
             <Text style={[styles.btnText, { color: (selected || custom.trim()) ? colors.sageForeground : colors.mutedForeground }]}>
-              Log Win
+              Store proof
             </Text>
           )}
         </Pressable>

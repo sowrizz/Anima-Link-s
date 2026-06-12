@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Keyboard, ActivityIndicator, KeyboardAvoidingView, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Pressable, FlatList, Keyboard, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -15,182 +15,165 @@ interface Message {
   analysis?: MessageAnalysis;
 }
 
-const MODES = ['Vent', 'Calm', 'Challenge', 'Plan', 'Hype'];
+const MODES = ['Vent', 'Calm Me', 'Challenge Me', 'Plan With Me', 'Hype Me'];
 
 export default function ChatScreen() {
   const router = useRouter();
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { currentCharacter } = useAppContext();
-  
+  const { currentCharacter, supportStyle, setLastAnalysis } = useAppContext();
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: `Hi, I'm ${currentCharacter}. How are you feeling right now?`, isUser: false }
+    { id: '1', text: `I'm here in ${supportStyle} mode. Tell me what is happening, and I will look for patterns, memory proof, and the next small action.`, isUser: false },
   ]);
   const [input, setInput] = useState('');
-  
   const analyzeMutation = useAnalyzeMessage();
   const safetyMutation = useSafetyCheck();
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-
-    const userText = input.trim();
+  const handleSend = async (overrideText?: string) => {
+    const userText = (overrideText ?? input).trim();
+    if (!userText) return;
     setInput('');
     Keyboard.dismiss();
 
     const newMsgId = Date.now().toString();
-    const newMsg: Message = { id: newMsgId, text: userText, isUser: true };
-    
-    setMessages(prev => [newMsg, ...prev]);
+    setMessages((prev) => [{ id: newMsgId, text: userText, isUser: true }, ...prev]);
 
     try {
-      // 1. Safety Check
       const safetyRes = await safetyMutation.mutateAsync({ data: { message: userText } });
       if (!safetyRes.safe) {
-        setMessages(prev => [
-          { id: Date.now().toString(), text: safetyRes.message, isUser: false },
-          ...prev
-        ]);
-        if (safetyRes.risk_level === 'high') {
-          router.push('/(tabs)/safety');
-        }
+        setMessages((prev) => [{ id: `${Date.now()}-safe`, text: safetyRes.message, isUser: false }, ...prev]);
+        if (safetyRes.risk_level === 'high') router.push('/(tabs)/safety');
         return;
       }
 
-      // 2. Analyze
       const analysis = await analyzeMutation.mutateAsync({ data: { message: userText } });
-      
-      // Update the user message with analysis
-      setMessages(prev => prev.map(m => m.id === newMsgId ? { ...m, analysis } : m));
-
-      // 3. Assistant response
-      setMessages(prev => [
-        { id: Date.now().toString(), text: analysis.safe_response, isUser: false },
-        ...prev
-      ]);
-
-    } catch (e) {
-      console.error(e);
-      setMessages(prev => [
-        { id: Date.now().toString(), text: "I'm having trouble connecting right now. Can we try again?", isUser: false },
-        ...prev
+      setLastAnalysis(analysis);
+      setMessages((prev) => prev.map((m) => (m.id === newMsgId ? { ...m, analysis } : m)));
+      setMessages((prev) => [{ id: `${Date.now()}-reply`, text: analysis.safe_response, isUser: false }, ...prev]);
+    } catch {
+      setMessages((prev) => [
+        { id: `${Date.now()}-error`, text: "I cannot reach the analysis service right now. You can still use reset, focus, or memory from the action buttons.", isUser: false },
+        ...prev,
       ]);
     }
   };
 
   const handleAction = (action: string, analysis?: MessageAnalysis) => {
     switch (action) {
-      case 'Battle Thought':
+      case 'Challenge':
         router.push({
           pathname: '/games/thought-monster',
-          params: { message: messages.find(m => m.analysis?.analysis_id === analysis?.analysis_id)?.text || '', analysisId: analysis?.analysis_id }
+          params: { message: messages.find((m) => m.analysis?.analysis_id === analysis?.analysis_id)?.text || '', analysisId: analysis?.analysis_id },
         });
         break;
-      case 'Open Focus Boss':
+      case 'Reset':
+        router.push('/voice-room');
+        break;
+      case 'Focus':
         router.push('/games/focus-boss');
         break;
-      case 'Recall Proof':
+      case 'Recall':
         router.push('/(tabs)/memory');
         break;
-      case 'Switch Mode':
+      case 'Support':
         router.push('/support-modes');
-        break;
-      default:
         break;
     }
   };
 
   const renderItem = ({ item }: { item: Message }) => {
     const isUser = item.isUser;
-    
+
     return (
       <View style={[styles.messageWrapper, isUser ? styles.messageWrapperUser : styles.messageWrapperAssistant]}>
-        <View style={[
-          styles.bubble, 
-          { backgroundColor: isUser ? colors.primary : colors.card, borderColor: isUser ? colors.primary : colors.border },
-          isUser ? styles.bubbleUser : styles.bubbleAssistant
-        ]}>
-          <Text style={[styles.messageText, { color: isUser ? colors.primaryForeground : colors.foreground }]}>
-            {item.text}
-          </Text>
+        <View
+          style={[
+            styles.bubble,
+            { backgroundColor: isUser ? colors.lavender + '38' : colors.card, borderColor: isUser ? colors.lavender : colors.border },
+            isUser ? styles.bubbleUser : styles.bubbleAssistant,
+          ]}
+        >
+          <Text style={[styles.messageText, { color: colors.foreground }]}>{item.text}</Text>
         </View>
-        
-        {item.analysis && (
+
+        {item.analysis ? (
           <View style={styles.analysisWrapper}>
             <AnalysisCard analysis={item.analysis} />
-            {item.analysis.suggested_game && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.actionsRow}>
-                <Pressable 
-                  style={[styles.actionBtn, { backgroundColor: colors.accent + '22' }]}
-                  onPress={() => handleAction('Battle Thought', item.analysis)}
-                >
-                  <Text style={[styles.actionBtnText, { color: colors.accent }]}>Battle Thought</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.actionsRow}>
+              {[
+                ['Challenge', 'edit-3', colors.primary],
+                ['Reset', 'wind', colors.dustyBlue],
+                ['Focus', 'clock', colors.sage],
+                ['Recall', 'database', colors.accent],
+                ['Support', 'users', colors.primary],
+              ].map(([label, icon, tint]) => (
+                <Pressable key={label as string} style={[styles.actionBtn, { backgroundColor: (tint as string) + '18' }]} onPress={() => handleAction(label as string, item.analysis)}>
+                  <Feather name={icon as keyof typeof Feather.glyphMap} size={14} color={tint as string} />
+                  <Text style={[styles.actionBtnText, { color: tint as string }]}>{label as string}</Text>
                 </Pressable>
-                <Pressable 
-                  style={[styles.actionBtn, { backgroundColor: colors.sage + '22' }]}
-                  onPress={() => handleAction('Open Focus Boss')}
-                >
-                  <Text style={[styles.actionBtnText, { color: colors.sage }]}>Focus Boss</Text>
-                </Pressable>
-              </ScrollView>
-            )}
+              ))}
+            </ScrollView>
           </View>
-        )}
+        ) : null}
       </View>
     );
   };
 
+  const busy = analyzeMutation.isPending || safetyMutation.isPending;
+
   return (
-    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior="padding" keyboardVerticalOffset={0}>
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <View style={[styles.header, { paddingTop: insets.top + 14, backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        <View style={styles.titleRow}>
+          <View>
+            <Text style={[styles.title, { color: colors.foreground }]}>Chat with Anima</Text>
+            <Text style={[styles.modeLabel, { color: colors.mutedForeground }]}>Support mode: {supportStyle} · Guide: {currentCharacter}</Text>
+          </View>
+          <Pressable style={[styles.headerIcon, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => router.push('/support-modes')}>
+            <Feather name="sliders" size={18} color={colors.foreground} />
+          </Pressable>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.modesScroll}>
-          {MODES.map(mode => (
-            <Pressable key={mode} style={[styles.modeChip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {MODES.map((mode) => (
+            <Pressable key={mode} style={[styles.modeChip, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => mode === 'Calm Me' ? router.push('/voice-room') : undefined}>
               <Text style={[styles.modeText, { color: colors.foreground }]}>{mode}</Text>
             </Pressable>
           ))}
-          <Pressable 
-            style={[styles.modeChip, { backgroundColor: colors.primary + '22', borderColor: 'transparent' }]}
-            onPress={() => router.push('/support-modes')}
-          >
-            <Feather name="settings" size={14} color={colors.primary} />
-          </Pressable>
         </ScrollView>
       </View>
 
       <FlatList
         data={messages}
         renderItem={renderItem}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         inverted
-        contentContainerStyle={[styles.listContent, { paddingBottom: 24 }]}
+        contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       />
 
       <View style={[styles.inputContainer, { backgroundColor: colors.card, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Pressable style={styles.iconBtn}>
-          <Feather name="mic" size={24} color={colors.mutedForeground} />
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/voice-room')}>
+          <Feather name="mic" size={22} color={colors.mutedForeground} />
         </Pressable>
         <TextInput
-          style={[styles.input, { color: colors.foreground, backgroundColor: colors.background }]}
-          placeholder="Type a message..."
+          style={[styles.input, { color: colors.foreground, backgroundColor: colors.background, borderColor: colors.border }]}
+          placeholder="Type message..."
           placeholderTextColor={colors.mutedForeground}
           value={input}
           onChangeText={setInput}
           multiline
           maxLength={500}
         />
-        <Pressable 
-          style={[styles.sendBtn, { backgroundColor: input.trim() ? colors.primary : colors.muted }]}
-          onPress={handleSend}
-          disabled={!input.trim() || analyzeMutation.isPending || safetyMutation.isPending}
-        >
-          {analyzeMutation.isPending || safetyMutation.isPending ? (
-             <ActivityIndicator size="small" color={colors.primaryForeground} />
-          ) : (
-             <Feather name="arrow-up" size={20} color={input.trim() ? colors.primaryForeground : colors.mutedForeground} />
-          )}
+        <Pressable style={styles.iconBtn} onPress={() => router.push('/games/camera-mission')}>
+          <Feather name="camera" size={22} color={colors.mutedForeground} />
+        </Pressable>
+        <Pressable style={[styles.sendBtn, { backgroundColor: input.trim() ? colors.primary : colors.muted }]} onPress={() => handleSend()} disabled={!input.trim() || busy}>
+          {busy ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={20} color={input.trim() ? colors.primaryForeground : colors.mutedForeground} />}
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -198,108 +181,29 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    borderBottomWidth: 1,
-    paddingBottom: 12,
-  },
-  modesScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  modeChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  modeText: {
-    fontSize: 14,
-    fontFamily: 'Inter_500Medium',
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
-  },
-  messageWrapper: {
-    marginBottom: 16,
-    maxWidth: '85%',
-  },
-  messageWrapperUser: {
-    alignSelf: 'flex-end',
-  },
-  messageWrapperAssistant: {
-    alignSelf: 'flex-start',
-  },
-  bubble: {
-    padding: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  bubbleUser: {
-    borderBottomRightRadius: 4,
-  },
-  bubbleAssistant: {
-    borderBottomLeftRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-    lineHeight: 24,
-  },
-  analysisWrapper: {
-    marginTop: 8,
-    width: '100%',
-    minWidth: 280,
-  },
-  actionsRow: {
-    marginTop: 8,
-    flexDirection: 'row',
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    marginRight: 8,
-  },
-  actionBtnText: {
-    fontSize: 13,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    padding: 16,
-    borderTopWidth: 1,
-    gap: 12,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  input: {
-    flex: 1,
-    minHeight: 48,
-    maxHeight: 120,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 14,
-    fontSize: 16,
-    fontFamily: 'Inter_400Regular',
-  },
-  sendBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { flex: 1 },
+  header: { borderBottomWidth: 1, paddingBottom: 12 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 12 },
+  title: { fontSize: 24, fontFamily: 'Inter_700Bold', lineHeight: 30 },
+  modeLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', marginTop: 4 },
+  headerIcon: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  modesScroll: { paddingHorizontal: 16, gap: 8 },
+  modeChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1 },
+  modeText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  listContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
+  messageWrapper: { marginBottom: 16, maxWidth: '92%' },
+  messageWrapperUser: { alignSelf: 'flex-end' },
+  messageWrapperAssistant: { alignSelf: 'flex-start' },
+  bubble: { padding: 15, borderRadius: 8, borderWidth: 1 },
+  bubbleUser: { borderTopRightRadius: 2 },
+  bubbleAssistant: { borderTopLeftRadius: 2 },
+  messageText: { fontSize: 15, fontFamily: 'Inter_400Regular', lineHeight: 23 },
+  analysisWrapper: { marginTop: 8, width: '100%', minWidth: 320 },
+  actionsRow: { gap: 8, paddingRight: 16 },
+  actionBtn: { paddingHorizontal: 12, paddingVertical: 9, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  actionBtnText: { fontSize: 13, fontFamily: 'Inter_700Bold' },
+  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, borderTopWidth: 1, gap: 8 },
+  iconBtn: { width: 40, height: 46, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minHeight: 46, maxHeight: 118, borderRadius: 8, borderWidth: 1, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, fontSize: 15, fontFamily: 'Inter_400Regular' },
+  sendBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
 });

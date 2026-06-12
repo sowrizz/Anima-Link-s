@@ -34,6 +34,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Object',
 };
 
+const matureObjectLabel = (label: string) =>
+  label
+    .replace(/Distraction Goblin/gi, 'Distraction')
+    .replace(/Focus Portal/gi, 'Focus object')
+    .replace(/Health Potion/gi, 'Grounding object')
+    .replace(/Boss Gate/gi, 'Task anchor');
+
 export default function CameraMissionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -84,7 +91,7 @@ export default function CameraMissionScreen() {
 
   const handleAnalyze = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    analyzeWorkspace.mutate({ image_base64: imageBase64 ?? undefined });
+    analyzeWorkspace.mutate({ data: { image_base64: imageBase64 ?? '', mode: 'workspace' } });
   };
 
   const data = analyzeWorkspace.data;
@@ -205,8 +212,8 @@ export default function CameraMissionScreen() {
           <Feather name="x" size={18} color={colors.foreground} />
         </TouchableOpacity>
         <View>
-          <Text style={styles.title}>Workspace Scan</Text>
-          <Text style={styles.subtitle}>Scan your desk to plan your session</Text>
+          <Text style={styles.title}>Camera Grounding</Text>
+          <Text style={styles.subtitle}>Use your room to find one small next step</Text>
         </View>
       </View>
 
@@ -214,7 +221,7 @@ export default function CameraMissionScreen() {
         {Platform.OS === 'web' ? (
           <View style={styles.webFallback}>
             <Feather name="camera" size={40} color={colors.mutedForeground} />
-            <Text style={styles.webFallbackText}>Camera Scan — Mobile Only</Text>
+            <Text style={styles.webFallbackText}>Camera Grounding — Mobile Only</Text>
             <Text style={styles.webFallbackSub}>
               Open this screen on your mobile device to scan your workspace and get AI-powered focus analysis.
             </Text>
@@ -299,11 +306,11 @@ export default function CameraMissionScreen() {
                 return (
                   <View key={idx} style={styles.objectCard}>
                     <Feather
-                      name={(CATEGORY_ICONS[obj.category] ?? 'box') as Parameters<typeof Feather>[0]['name']}
+                      name={(CATEGORY_ICONS[obj.category] ?? 'box') as keyof typeof Feather.glyphMap}
                       size={20}
                       color={catColor.text}
                     />
-                    <Text style={styles.objectLabel}>{obj.game_label}</Text>
+                    <Text style={styles.objectLabel}>{matureObjectLabel(obj.game_label)}</Text>
                     <Text style={styles.objectGameLabel}>{obj.label}</Text>
                     <View style={[styles.objectCategory, { backgroundColor: catColor.bg }]}>
                       <Text style={[styles.objectCategoryText, { color: catColor.text }]}>

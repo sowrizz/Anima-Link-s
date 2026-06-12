@@ -79,7 +79,7 @@ router.post("/memory/search", (req, res) => {
   }
 });
 
-router.get("/memory/all", (_req, res) => {
+router.get("/memory/all", (req, res) => {
   try {
     const all = store.memories.getAll();
     res.json({
@@ -102,7 +102,7 @@ router.get("/memory/all", (_req, res) => {
   }
 });
 
-router.get("/memory/graph", (_req, res) => {
+router.get("/memory/graph", (req, res) => {
   try {
     const memories = store.memories.getAll();
     const thoughtPairs = store.thoughtPairs.getAll();

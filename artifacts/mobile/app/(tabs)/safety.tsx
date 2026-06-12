@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, ActivityIndicator, KeyboardAvoidingView, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
@@ -9,6 +9,14 @@ export default function SafetyScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [input, setInput] = useState('');
+  const [settings, setSettings] = useState({
+    chat: true,
+    voice: false,
+    camera: false,
+    memory: true,
+    export: false,
+    trusted: false,
+  });
   
   const safetyMutation = useSafetyCheck();
   const [result, setResult] = useState<any>(null);
@@ -56,13 +64,38 @@ export default function SafetyScreen() {
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior="padding">
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 100 }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Safety Check</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Privacy & Safety</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Type what you're thinking. Anima will assess the risk and guide you.
+            Review what Anima-Link can use, preview emergency routing, and run deterministic safety checks before LLM support.
           </Text>
         </View>
 
+        <View style={styles.settingsList}>
+          {[
+            ['chat', 'Chat analysis', 'Detect language patterns and stress signals.'],
+            ['voice', 'Voice analysis', 'Turn spoken reflections into insights.'],
+            ['camera', 'Camera grounding', 'Use room objects for grounding and focus.'],
+            ['memory', 'Local memory', 'Save reframes and progress proof.'],
+            ['export', 'Therapist export', 'Prepare a weekly report when requested.'],
+            ['trusted', 'Trusted contact preview', 'Draft an SOS message without sending it.'],
+          ].map(([key, title, desc]) => (
+            <View key={key} style={[styles.settingCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.settingCopy}>
+                <Text style={[styles.settingTitle, { color: colors.foreground }]}>{title}</Text>
+                <Text style={[styles.settingDesc, { color: colors.mutedForeground }]}>{desc}</Text>
+              </View>
+              <Switch
+                value={settings[key as keyof typeof settings]}
+                onValueChange={() => setSettings((prev) => ({ ...prev, [key]: !prev[key as keyof typeof settings] }))}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.card}
+              />
+            </View>
+          ))}
+        </View>
+
         <View style={[styles.inputBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Safety route check</Text>
           <TextInput
             style={[styles.input, { color: colors.foreground }]}
             placeholder="I'm feeling..."
@@ -80,7 +113,7 @@ export default function SafetyScreen() {
             {safetyMutation.isPending ? (
               <ActivityIndicator color={colors.primaryForeground} />
             ) : (
-              <Text style={[styles.btnText, { color: input.trim() ? colors.primaryForeground : colors.mutedForeground }]}>Check</Text>
+              <Text style={[styles.btnText, { color: input.trim() ? colors.primaryForeground : colors.mutedForeground }]}>Check route</Text>
             )}
           </Pressable>
         </View>
@@ -88,7 +121,7 @@ export default function SafetyScreen() {
         {renderStatus()}
 
         <View style={styles.resourcesSection}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Crisis Resources</Text>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Crisis resources</Text>
           <Pressable style={[styles.resourceCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[styles.iconBox, { backgroundColor: colors.destructive + '22' }]}>
               <Feather name="phone" size={20} color={colors.destructive} />
@@ -142,6 +175,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     marginBottom: 24,
+  },
+  settingsList: {
+    gap: 12,
+    marginBottom: 24,
+  },
+  settingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+  },
+  settingCopy: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontFamily: 'Inter_700Bold',
+    marginBottom: 4,
+  },
+  settingDesc: {
+    fontSize: 13,
+    fontFamily: 'Inter_400Regular',
+    lineHeight: 18,
   },
   input: {
     height: 120,
